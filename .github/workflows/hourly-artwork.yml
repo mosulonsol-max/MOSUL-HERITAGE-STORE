@@ -12,6 +12,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   artwork:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       ready: ${{ steps.generate.outputs.ready }}
