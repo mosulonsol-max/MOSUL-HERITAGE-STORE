@@ -22,6 +22,12 @@ class SocialQueueTests(unittest.TestCase):
             validate_achievement_update(text)
         with self.assertRaises(ValueError):
             validate_achievement_update("Publishing failed because a required secret is missing.")
+        with self.assertRaises(ValueError):
+            validate_achievement_update("This tissue sample was catalogued.")
+
+    def test_social_copy_does_not_overstate_optional_signing(self):
+        self.assertNotIn("signed provenance", POSTS["morning"].casefold())
+        self.assertIn("optional Ed25519", POSTS["evening"])
 
     def test_three_baghdad_slots(self):
         self.assertEqual(choose_slot(dt.datetime(2026, 1, 1, 5, tzinfo=dt.timezone.utc)), "morning")
