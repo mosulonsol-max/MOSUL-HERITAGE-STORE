@@ -23,5 +23,13 @@ jobs:
         env:
           PYTHONPATH: ai-engine
         run: python -m unittest discover -s ai-engine/tests -v
+      - name: Test scheduled social queue
+        env:
+          PYTHONPATH: .
+        run: python -m unittest discover -s tests -v
+      - name: Test Devnet payment, settlement, refund, and sales ledger
+        env:
+          PYTHONPATH: payment-service
+        run: python -m unittest discover -s payment-service/tests -v
       - name: Validate dry-run plan
         run: python ai-engine/run_agent.py --no-execute --audit /tmp/mosul-ai-audit.jsonl
