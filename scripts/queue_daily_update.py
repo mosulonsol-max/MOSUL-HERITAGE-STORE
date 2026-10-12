@@ -9,23 +9,28 @@ import os
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+try:
+    from .x_text import weighted_length
+except ImportError:  # Direct execution: python scripts/queue_daily_update.py
+    from x_text import weighted_length
+
 QUEUE_LIMIT = 400
 SITE = "https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/"
 
 POSTS = {
     "morning": (
-        "MOSUL HERITAGE build log: the public repository records code, verification notes, "
-        "and release gates. The project remains preview-only while payment and minting stay disabled. "
+        "MOSUL HERITAGE build log: public code, verification notes, and release gates are visible. "
+        "The project remains a preview; payments and minting are disabled. "
         f"{SITE} #MOSUL #BuildInPublic"
     ),
     "afternoon": (
-        "Inside MOSUL HERITAGE: the governed AI pipeline can plan and generate heritage-inspired "
-        "art previews, while deterministic policy checks block unknown, mainnet, and real-value actions. "
+        "Inside MOSUL HERITAGE: governed AI can plan heritage-inspired art previews. "
+        "Deterministic policy checks block unknown, mainnet, and real-value actions. "
         f"{SITE} #MOSUL #DigitalArt"
     ),
     "evening": (
-        "Every MOSUL HERITAGE preview is designed for traceability: unique ID, SHA-256, visible watermark, "
-        "source notes, and optional Ed25519 provenance. A signature supports verification; it is not proof of a sale. "
+        "MOSUL HERITAGE previews include a unique ID, SHA-256 digest, watermark, source notes, "
+        "and optional Ed25519 signature. Signatures support verification; they do not prove a sale. "
         f"{SITE} #MOSUL #Provenance"
     ),
 }
@@ -52,8 +57,8 @@ def queue_update(path: Path, slot: str, now: dt.datetime) -> bool:
     if any(item.get("id") == update_id for item in updates if isinstance(item, dict)):
         return False
     text = POSTS[slot]
-    if not text.isascii() or len(text) > 280:
-        raise ValueError("daily post must be ASCII and at most 280 characters")
+    if weighted_length(text) > 280:
+        raise ValueError("daily post exceeds X's 280 weighted-character limit")
     updates.append({"id": update_id, "status": "approved", "text": text})
     payload["updates"] = updates[-QUEUE_LIMIT:]
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
