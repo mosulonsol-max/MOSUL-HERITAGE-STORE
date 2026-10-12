@@ -10,6 +10,8 @@ import json
 import os
 import statistics
 import sys
+import subprocess
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -61,7 +63,35 @@ def prompt_for(now):
     )
     return title, prompt
 
-def get_png(prompt):
+GENERATION_DETAILS = {}
+
+def get_png(prompt, output_file):
+    backend = os.environ.get("ARTWORK_BACKEND", "openai-compatible").strip().casefold()
+    if backend == "flux-local":
+        generator = Path(__file__).with_name("generate_flux.py")
+        command = [sys.executable, str(generator), "--prompt", prompt, "--output", str(output_file)]
+        reference_query = os.environ.get("ARTWORK_REFERENCE_QUERY", "").strip()
+        if reference_query:
+            command.extend(["--reference-query", reference_query])
+        completed = subprocess.run(command, check=True, capture_output=True, text=True, timeout=3600)
+        for line in reversed(completed.stdout.splitlines()):
+            try:
+                details = json.loads(line)
+                if isinstance(details, dict) and details.get("model"):
+                    GENERATION_DETAILS.update(details)
+                    break
+            except json.JSONDecodeError:
+                continue
+        raw = Path(output_file).read_bytes()
+        if len(raw) > 20_000_000 or raw[:8].hex() != "89504e470d0a1a0a":
+            raise ValueError("Local model must produce a PNG under 20 MB")
+        with Image.open(io.BytesIO(raw)) as image:
+            width, height = image.size
+        if width < 512 or height < 512 or width > 8192 or height > 8192:
+            raise ValueError("Local model produced dimensions outside the accepted range")
+        return raw
+    if backend != "openai-compatible":
+        raise ValueError("ARTWORK_BACKEND must be flux-local or openai-compatible")
     endpoint = os.environ.get("ARTWORK_API_URL", "").strip()
     key = os.environ.get("ARTWORK_API_KEY", "").strip()
     model = os.environ.get("ARTWORK_MODEL", "").strip()
@@ -158,7 +188,9 @@ def main():
     args = parser.parse_args()
     out = Path(args.output_dir)
     output_file = os.environ.get("GITHUB_OUTPUT")
-    if not os.environ.get("ARTWORK_API_URL") or not os.environ.get("ARTWORK_API_KEY"):
+    backend = os.environ.get("ARTWORK_BACKEND", "openai-compatible").strip().casefold()
+    api_ready = bool(os.environ.get("ARTWORK_API_URL") and os.environ.get("ARTWORK_API_KEY"))
+    if backend != "flux-local" and not api_ready:
         print("Image provider is not configured; no image was generated.")
         if output_file:
             Path(output_file).write_text("ready=false\n", encoding="utf-8")
@@ -167,7 +199,15 @@ def main():
     title, prompt = prompt_for(now)
     prompt += " Variation key " + now.strftime("%Y-%m-%dT%H") + " UTC; create a distinct composition."
     title += " — " + now.strftime("%Y-%m-%d %H:00 UTC")
-    image = watermark_preview(get_png(prompt))
+    with tempfile.TemporaryDirectory(prefix="mosul-artwork-") as temp_dir:
+        raw_path = Path(temp_dir) / "unwatermarked.png"
+        raw = get_png(prompt, raw_path)
+    if raw is None:
+        print("Image provider is not configured; no image was generated.")
+        if output_file:
+            Path(output_file).write_text("ready=false\n", encoding="utf-8")
+        return 0
+    image = watermark_preview(raw)
     category = "digital-art-one-of-one"
     identifier = "MH-" + now.strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
     generated = out / "generated"
@@ -183,7 +223,7 @@ def main():
         "id": identifier,
         "title": title,
         "prompt": prompt,
-        "model": os.environ.get("ARTWORK_MODEL", "provider-default"),
+        "model": GENERATION_DETAILS.get("model", os.environ.get("ARTWORK_MODEL", "provider-default")),
         "category": category,
         "created_at": now.isoformat().replace("+00:00", "Z"),
         "image": "generated/" + image_path.name,
@@ -194,6 +234,8 @@ def main():
         "watermark_status": "Unverified preview; no signed authenticity claim.",
         "mint_status": "Not minted",
     }
+    if GENERATION_DETAILS.get("reference"):
+        record["reference_provenance"] = GENERATION_DETAILS["reference"]
     catalog_path = out / "catalog.json"
     try:
         catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
@@ -224,3 +266,4 @@ if __name__ == "__main__":
     except Exception as exc:
         print("Artwork pipeline stopped safely: " + str(exc), file=sys.stderr)
         raise SystemExit(1)
+
