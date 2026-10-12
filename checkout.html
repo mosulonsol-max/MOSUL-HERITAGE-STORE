@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="sale-api" content="">
+<meta name="terms-sha256" content="0000000000000000000000000000000000000000000000000000000000000000">
+<title>MOSUL HERITAGE — Genesis 000001</title>
+<style>
+:root{--ink:#17231f;--paper:#f4efe5;--card:#fffdf8;--line:#d7cdbb;--green:#164b3a;--gold:#b78332;--danger:#812f2f}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 system-ui,sans-serif}.wrap{width:min(920px,calc(100% - 28px));margin:auto}header{display:flex;justify-content:space-between;padding:22px 0;border-bottom:1px solid var(--line)}a{color:var(--green)}main{padding:38px 0}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;color:#765826}h1{font:clamp(38px,7vw,66px)/1.03 Georgia,serif;margin:10px 0 16px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px}.panel{background:var(--card);border:1px solid var(--line);padding:22px}.price{font:38px Georgia,serif}.facts{padding:0;list-style:none}.facts li{padding:8px 0;border-bottom:1px solid var(--line)}button{border:0;background:var(--green);color:white;padding:13px 18px;font-weight:800;cursor:pointer;width:100%}button:disabled{opacity:.5;cursor:not-allowed}.field{margin:14px 0}.field input[type=text]{width:100%;padding:11px;border:1px solid var(--line)}.notice{border-left:4px solid var(--gold);padding:12px;background:#fbf3df}.error{color:var(--danger)}code{overflow-wrap:anywhere}.hidden{display:none}@media(max-width:720px){.grid{grid-template-columns:1fr}}</style>
+</head>
+<body><div class="wrap">
+<header><a href="./">MOSUL HERITAGE</a><a href="docs/SALE-TERMS.md">Buyer terms</a></header>
+<main>
+<div class="eyebrow">GENESIS COLLECTION · EDITION 1/1</div>
+<h1>Mosul 1932 — Al-Hadba Over the Old City</h1>
+<div class="grid">
+<section class="panel">
+<p>An evidence-based digital reconstruction derived from a documented 1932
+source. The Collector Master carries a signed MSAI identity and is delivered
+with its certificate and verification records.</p>
+<ul class="facts"><li>Product: <code>MOSUL-GENESIS-000001</code></li>
+<li>Edition: 1/1</li><li>Payment: Solana Mainnet USDC</li>
+<li>Price: <strong>USDC 149.00</strong></li><li>NFT: not included unless a
+verified asset address is shown here</li></ul>
+<div class="notice">The public preview is not the Collector Master. Copyright
+is not transferred. The exact license and refund rule are in the buyer terms.</div>
+</section>
+<section class="panel">
+<div class="price">149 USDC</div>
+<p id="availability">Checking checkout availability…</p>
+<div id="form" class="hidden">
+<div class="field"><label>Buyer Solana wallet (optional)<input id="wallet" type="text" autocomplete="off"></label></div>
+<div class="field"><label><input id="accept" type="checkbox"> I accept the current buyer terms.</label></div>
+<button id="start" type="button">Create secure checkout</button>
+</div>
+<div id="payment" class="hidden"><p>Open this request in a Solana Pay compatible wallet:</p>
+<p><a id="paylink" href="#">Pay 149 USDC</a></p>
+<p>After payment, paste the transaction signature:</p>
+<div class="field"><input id="signature" type="text" autocomplete="off"></div>
+<button id="confirm" type="button">Verify finalized payment</button></div>
+<p id="message" role="status"></p>
+</section></div>
+</main></div>
+<script>
+const api=document.querySelector('meta[name="sale-api"]').content;
+const termsHash=document.querySelector('meta[name="terms-sha256"]').content;
+const availability=document.getElementById('availability'),form=document.getElementById('form'),payment=document.getElementById('payment'),message=document.getElementById('message');
+let order=null;
+async function boot(){if(!api||/^0+$/.test(termsHash)){availability.textContent='Checkout activation is awaiting the signed seller terms and verified receiving wallet.';return}try{const r=await fetch(api+'/health',{cache:'no-store'});if(!r.ok)throw Error();availability.textContent='Available for one buyer.';form.classList.remove('hidden')}catch{availability.textContent='Checkout is temporarily unavailable.'}}
+document.getElementById('start').onclick=async()=>{message.textContent='';if(!document.getElementById('accept').checked){message.textContent='Accept the buyer terms first.';message.className='error';return}const body={idempotency_key:crypto.randomUUID(),accepted_terms_sha256:termsHash};const wallet=document.getElementById('wallet').value.trim();if(wallet)body.buyer_wallet=wallet;try{const r=await fetch(api+'/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw Error(data.error||'Checkout unavailable');order=data;form.classList.add('hidden');payment.classList.remove('hidden');document.getElementById('paylink').href=data.solana_pay_uri;message.className='';message.textContent='Order reserved until '+data.expires_at}catch(e){message.textContent=e.message;message.className='error'}};
+document.getElementById('confirm').onclick=async()=>{const signature=document.getElementById('signature').value.trim();try{const r=await fetch(api+'/orders/'+encodeURIComponent(order.id)+'/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({signature,claim_secret:order.claim_secret})});const data=await r.json();if(!r.ok)throw Error(data.error||'Payment not verified');message.className='';message.replaceChildren(document.createTextNode('Payment verified. '));const link=document.createElement('a');link.href=api+data.download_url;link.textContent='Download the Collector package';message.append(link)}catch(e){message.textContent=e.message;message.className='error'}};
+boot();
+</script>
+</body></html>
