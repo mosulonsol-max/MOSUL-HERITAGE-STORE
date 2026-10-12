@@ -2,41 +2,38 @@
 
 ## What it does
 
-The GitHub Actions workflow is scheduled once per hour and can also be started manually. When configured, it requests one new square concept image from an owner-selected HTTPS image API, validates the PNG, adds a visible MOSUL HERITAGE · PREVIEW · NOT FOR SALE watermark, records the output hash and classification, and adds the result to the public preview catalog. The original unmarked image is not committed to this public repository.
-
-The workflow stores the rolling catalog and preview files on a separate artwork-data branch, assembles them with the project source, and deploys a GitHub Pages artifact. It keeps the 120 newest entries. The schedule is best-effort; GitHub may delay scheduled runs, so it cannot guarantee a new image at the exact start of every hour.
+A GitHub Actions workflow runs once an hour and can be started manually from main. When an owner configures an HTTPS image API, it requests one square concept image, validates it, adds a visible MOSUL HERITAGE · PREVIEW · NOT FOR SALE watermark, and publishes its hash and AI-art classification in the preview catalog. Unmarked masters are not committed publicly. The rolling catalog and watermarked previews live on a separate artwork-data branch; the workflow assembles and deploys a GitHub Pages artifact. It retains the 120 newest entries. GitHub scheduling is best-effort and cannot guarantee an exact hourly publication.
 
 ## Safe defaults
 
-- With no image API configuration, the run exits without generating or publishing anything.
-- Checkout, payment, delivery, NFT minting, and X posting are not part of this workflow.
-- Every output is marked AI-generated contemporary art, not a historical photograph or verified reconstruction.
-- Every image is a public preview only. The watermark is a visible label, not a cryptographic signature or proof of ownership.
-- The system does not invent a price. It reports a comparable-sales benchmark only when it receives at least five category-matched completed sales from the last 90 days. Listings are not treated as sales. If data is missing or weak, the catalog says the price is unavailable.
-- A historical benchmark is not an appraisal, asking price, investment claim, or permission to sell.
+- Without image API configuration, no image is generated or published.
+- The provider may charge for image generation. No service is configured by this workflow.
+- Checkout, payment, delivery, NFT minting, and X posting are not included.
+- Each output is labeled AI-generated contemporary art, not historical evidence or a verified reconstruction. The visible watermark is not a signature or proof of ownership.
+- Price is shown only as a historical comparable-sales benchmark after at least five valid, category-matched sales in the last 90 days. Listings do not count as sales. Weak or missing data is shown as unavailable.
 
 ## Owner configuration
 
-Add these as GitHub repository Actions secrets. Never put API keys in the repository or in a public issue.
+Set these in the repository's Actions secrets and variables. Never place API keys in source files or public issues.
 
 | Secret / variable | Purpose |
 | --- | --- |
-| ARTWORK_API_URL | Full HTTPS endpoint for an OpenAI-compatible image generation API that accepts prompt, size, n, and response_format and returns data[0].b64_json. |
-| ARTWORK_API_KEY | Private bearer key for that image provider. The provider may charge for image generation; the workflow is inert until the owner configures it. |
-| ARTWORK_MODEL (Actions variable) | Optional model identifier accepted by the selected provider. |
-| MARKET_COMPS_API_URL | Optional owner-selected HTTPS read-only endpoint returning the normalized comparable-sales schema below. |
-| MARKET_COMPS_API_KEY | Optional bearer key for the selected comparable-sales source. |
+| ARTWORK_API_URL | HTTPS endpoint for an OpenAI-compatible image API that accepts prompt, size, n, response_format and returns data[0].b64_json. |
+| ARTWORK_API_KEY | Private bearer key for the image provider. |
+| ARTWORK_MODEL (Actions variable) | Optional provider model identifier. |
+| MARKET_COMPS_API_URL | Optional HTTPS read-only endpoint returning the comparable-sales schema below. |
+| MARKET_COMPS_API_KEY | Optional bearer key for that source. |
 
-The comparable-sales endpoint must return JSON with a top-level comparables array. Each item must provide category, status, sold_at, price_usd, and source. For example:
+The comparables endpoint returns a JSON top-level comparables array. Each record needs a unique transaction_id, category, status, sold_at, price_usd, and source:
 
-    {"comparables":[{"category":"digital-art-one-of-one","status":"sold","sold_at":"2026-10-01T12:00:00Z","price_usd":42.5,"source":"https://market.example/transaction/123"}]}
+    {"comparables":[{"transaction_id":"sale-123","category":"digital-art-one-of-one","status":"sold","sold_at":"2026-10-01T12:00:00Z","price_usd":42.5,"source":"https://market.example/transaction/123"}]}
 
-Only status=sold, an exact category match, a valid timestamp in the 90-day window, and a positive USD amount count. The endpoint owner is responsible for using a source whose completed-sale records and USD conversions can be independently checked. No marketplace integration is claimed until one is configured and its feed is audited.
+Only unique IDs with status=sold, an exact category match, a valid timestamp in the 90-day window, and a positive finite USD price count. The public catalog retains source hostnames only. The endpoint owner must verify transaction records and currency conversions. No marketplace integration is claimed until a source is configured and audited.
 
 ## GitHub Pages setup
 
-After this workflow is merged to main, choose Settings → Pages → Build and deployment → Source → GitHub Actions. The existing branch-based Pages setup must be switched once so the workflow can deploy its assembled preview. Then configure the provider secrets and run Actions → Hourly artwork preview pipeline → Run workflow. Review the run log and the deployed catalog.html preview before relying on it.
+After merging to main, choose Settings → Pages → Build and deployment → Source → GitHub Actions. This switches the existing branch-based Pages deployment. Then configure the provider secrets and start Actions → Hourly artwork preview pipeline → Run workflow. Review the workflow log and deployed catalog before relying on it.
 
 ## Before any sale
 
-This pipeline only produces watermarked previews. Commercial release still needs a separately secured private master store, project-approved source and logo rights, signed authenticity and buyer-license records, a verified project-to-token statement, an audited marketplace data source, a real payment and delivery test, and any required wallet-approved mint. None is activated by this workflow.
+This workflow only publishes previews. Any commercial release requires a private master store, approved source and logo rights, signed authenticity and buyer-license records, a verified project-to-token statement, an audited marketplace data source, payment and delivery testing, and any required wallet-approved mint. None is enabled here.
