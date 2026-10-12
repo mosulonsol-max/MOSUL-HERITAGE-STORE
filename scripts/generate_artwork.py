@@ -4,6 +4,7 @@ import argparse
 import base64
 import datetime as dt
 import hashlib
+import math
 import io
 import json
 import os
@@ -75,9 +76,7 @@ def get_png(prompt):
     if not encoded:
         raise ValueError("Image API did not return a base64 image")
     raw = base64.b64decode(encoded, validate=True)
-    if len(raw) > 20_000_000 or not raw.startswith(b"PNG
-
-"):
+    if len(raw) > 20_000_000 or raw[:8].hex() != "89504e470d0a1a0a":
         raise ValueError("Image must be a PNG under 20 MB")
     width, height = int.from_bytes(raw[16:20], "big"), int.from_bytes(raw[20:24], "big")
     if width < 512 or height < 512 or width > 8192 or height > 8192:
@@ -111,22 +110,33 @@ def estimate_price(category):
     cutoff = utc_now() - dt.timedelta(days=MAX_AGE_DAYS)
     sales = []
     sources = set()
+    seen_sales = set()
     for row in rows:
-        if not isinstance(row, dict) or row.get("status", "").lower() != "sold":
+        if not isinstance(row, dict):
             continue
-        if str(row.get("category", "")).strip().casefold() != category.casefold():
+        status = row.get("status")
+        row_category = row.get("category")
+        transaction_id = row.get("transaction_id")
+        if not isinstance(status, str) or status.casefold() != "sold":
+            continue
+        if not isinstance(row_category, str) or row_category.strip().casefold() != category.casefold():
+            continue
+        if not isinstance(transaction_id, str) or not transaction_id.strip() or transaction_id in seen_sales:
             continue
         try:
             sold_at = dt.datetime.fromisoformat(str(row["sold_at"]).replace("Z", "+00:00"))
             amount = float(row["price_usd"])
         except (KeyError, TypeError, ValueError):
             continue
-        if sold_at.tzinfo is None or sold_at < cutoff or sold_at > utc_now() or amount <= 0:
+        if sold_at.tzinfo is None or sold_at < cutoff or sold_at > utc_now() or amount <= 0 or not math.isfinite(amount):
             continue
+        seen_sales.add(transaction_id)
         sales.append(amount)
         source = row.get("source")
-        if isinstance(source, str) and source.startswith("https://"):
-            sources.add(source)
+        if isinstance(source, str):
+            parsed_source = urllib.parse.urlparse(source)
+            if parsed_source.scheme == "https" and parsed_source.hostname:
+                sources.add(parsed_source.hostname.lower())
     if len(sales) < MIN_SALES:
         return {"status": "unavailable", "reason": "Fewer than five valid, recent completed sales matched this category.", "sale_count": len(sales)}
     sales.sort()
@@ -155,6 +165,8 @@ def main():
         return 0
     now = utc_now()
     title, prompt = prompt_for(now)
+    prompt += " Variation key " + now.strftime("%Y-%m-%dT%H") + " UTC; create a distinct composition."
+    title += " — " + now.strftime("%Y-%m-%d %H:00 UTC")
     image = watermark_preview(get_png(prompt))
     category = "digital-art-one-of-one"
     identifier = "MH-" + now.strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
@@ -166,6 +178,8 @@ def main():
     record = {
         "id": identifier,
         "title": title,
+        "prompt": prompt,
+        "model": os.environ.get("ARTWORK_MODEL", "provider-default"),
         "category": category,
         "created_at": now.isoformat().replace("+00:00", "Z"),
         "image": "generated/" + image_path.name,
