@@ -4,6 +4,11 @@
       "id": "daily-2026-10-12-evening",
       "status": "approved",
       "text": "Every MOSUL HERITAGE preview is designed for traceability: unique ID, SHA-256, visible watermark, source notes, and optional Ed25519 provenance. A signature supports verification; it is not proof of a sale. https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/ #MOSUL #Provenance"
+    },
+    {
+      "id": "daily-2026-10-12-evening-retry",
+      "status": "approved",
+      "text": "MOSUL HERITAGE previews include a unique ID, SHA-256 digest, watermark, source notes, and optional Ed25519 signature. Signatures support verification; they do not prove a sale. https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/ #MOSUL #Provenance"
     }
   ]
 }
