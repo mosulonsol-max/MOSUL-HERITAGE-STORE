@@ -17,6 +17,10 @@ import urllib.parse
 import urllib.request
 import uuid
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ai-engine"))
+from mosul_ai.provenance import sign_record
+
 from PIL import Image, ImageDraw, ImageFont
 
 MAX_ITEMS = 120
@@ -236,6 +240,15 @@ def main():
     }
     if GENERATION_DETAILS.get("reference"):
         record["reference_provenance"] = GENERATION_DETAILS["reference"]
+    signing_key = os.environ.get("ARTWORK_SIGNING_KEY_B64", "").strip()
+    if signing_key:
+        try:
+            record["provenance_signature"] = sign_record(record, signing_key)
+            record["watermark_status"] = "Watermarked public preview with a signed provenance record."
+        except ValueError:
+            raise ValueError("ARTWORK_SIGNING_KEY_B64 is not a valid Ed25519 seed") from None
+    else:
+        record["provenance_signature_status"] = "not_configured"
     catalog_path = out / "catalog.json"
     try:
         catalog = json.loads(catalog_path.read_text(encoding="utf-8"))

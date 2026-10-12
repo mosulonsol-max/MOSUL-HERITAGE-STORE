@@ -58,3 +58,8 @@ A hash, certificate, signature, or watermark can support verification of a speci
 - [Whitepaper v0.2](docs/WHITEPAPER.md): bilingual project, token, utility, status, and risk disclosures.
 
 Last reviewed: **12 October 2026**.
+
+
+## Governed AI engine
+
+The `ai-engine/` directory contains an Ollama/Qwen planning layer, deterministic capability allow-list, source-evidence ledger, Ed25519 provenance helpers, audit log, and policy tests. The hourly preview workflow runs the policy suite before generation. Mainnet, checkout, settlement, minting, and real-value transfers remain disabled; approved devnet tests are the only permitted financial path.

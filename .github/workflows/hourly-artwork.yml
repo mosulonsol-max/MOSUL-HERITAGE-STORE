@@ -35,7 +35,7 @@ jobs:
             git -C data switch -c artwork-data
           fi
           if [ ! -f data/catalog.json ]; then echo '{"items":[]}' > data/catalog.json; fi
-      - name: Install image processing and selected generator dependencies
+      - name: Install engine and selected generator dependencies
         env:
           ARTWORK_BACKEND: ${{ vars.ARTWORK_BACKEND }}
         run: |
@@ -43,24 +43,32 @@ jobs:
           if [ "$ARTWORK_BACKEND" = "flux-local" ]; then
             python -m pip install --disable-pip-version-check -r source/requirements-gpu.txt
           fi
-      - name: Generate one preview and estimate only from verified sales
+      - name: Test AI policy before execution
+        env:
+          PYTHONPATH: source/ai-engine
+        run: python -m unittest discover -s source/ai-engine/tests -v
+      - name: Plan and generate one governed preview
         id: generate
         env:
+          AI_PLANNER_ENABLED: ${{ vars.AI_PLANNER_ENABLED }}
+          OLLAMA_BASE_URL: ${{ vars.OLLAMA_BASE_URL }}
+          OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL }}
           ARTWORK_BACKEND: ${{ vars.ARTWORK_BACKEND }}
           ARTWORK_API_URL: ${{ secrets.ARTWORK_API_URL }}
           ARTWORK_API_KEY: ${{ secrets.ARTWORK_API_KEY }}
           ARTWORK_MODEL: ${{ vars.ARTWORK_MODEL }}
           ARTWORK_REFERENCE_QUERY: ${{ vars.ARTWORK_REFERENCE_QUERY }}
+          ARTWORK_SIGNING_KEY_B64: ${{ secrets.ARTWORK_SIGNING_KEY_B64 }}
           MARKET_COMPS_API_URL: ${{ secrets.MARKET_COMPS_API_URL }}
           MARKET_COMPS_API_KEY: ${{ secrets.MARKET_COMPS_API_KEY }}
-        run: python source/scripts/generate_artwork.py --output-dir data
+        run: python source/ai-engine/run_agent.py --output-dir data --audit data/ai-audit.jsonl --generator source/scripts/generate_artwork.py --registry source/config/ai-capabilities.json
       - name: Save generated preview record
         if: steps.generate.outputs.ready == 'true'
         run: |
           git -C data config user.name 'github-actions[bot]'
           git -C data config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git -C data add catalog.json generated/
-          git -C data commit -m 'Generate hourly heritage artwork preview'
+          git -C data add catalog.json generated/ ai-audit.jsonl
+          git -C data commit -m 'Generate hourly governed heritage artwork preview'
           git -C data push origin HEAD:artwork-data
       - name: Assemble public preview
         if: steps.generate.outputs.ready == 'true'
@@ -84,4 +92,3 @@ jobs:
       - name: Publish GitHub Pages preview
         id: deployment
         uses: actions/deploy-pages@v4
-
