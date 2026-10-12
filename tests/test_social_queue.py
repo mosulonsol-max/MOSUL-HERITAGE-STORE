@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.queue_daily_update import POSTS, choose_slot, queue_update
+from scripts.queue_daily_update import POSTS, choose_slot, queue_update, validate_achievement_update
 from scripts.x_text import weighted_length
 
 
@@ -16,6 +16,12 @@ class SocialQueueTests(unittest.TestCase):
 
     def test_x_urls_use_weighted_length(self):
         self.assertEqual(weighted_length("a https://example.com/long/path z"), 27)
+
+    def test_only_positive_achievements_are_allowed(self):
+        for text in POSTS.values():
+            validate_achievement_update(text)
+        with self.assertRaises(ValueError):
+            validate_achievement_update("Publishing failed because a required secret is missing.")
 
     def test_three_baghdad_slots(self):
         self.assertEqual(choose_slot(dt.datetime(2026, 1, 1, 5, tzinfo=dt.timezone.utc)), "morning")

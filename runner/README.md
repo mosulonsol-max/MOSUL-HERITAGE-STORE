@@ -1,6 +1,8 @@
 # Owner-managed GPU runner
 
-Use a dedicated Linux x86_64 host with an NVIDIA GPU and current vendor driver. A practical minimum for the current quantized FLUX path is 16 GB VRAM; 24 GB or more is preferred. Do not run the GitHub runner as root and do not place wallet keys on this host.
+Use a dedicated Linux x86_64 host with an NVIDIA GPU and current vendor driver. This can be a physical machine or a rented cloud GPU instance. A practical minimum for the current quantized FLUX path is 16 GB VRAM; 24 GB or more is preferred. Do not run the GitHub runner as root and do not place wallet keys on this host.
+
+For an online rental, follow [CLOUD-GPU.md](CLOUD-GPU.md). A persistent 24 GB RTX 4090-class instance is the default cost/performance choice; use an A40/A6000 48 GB instance when larger FLUX or Ollama models require more VRAM.
 
 1. Install the NVIDIA driver and Python 3 with `venv` support.
 2. Install Ollama from its official Linux package.
