@@ -63,3 +63,18 @@ Last reviewed: **12 October 2026**.
 ## Governed AI engine
 
 The `ai-engine/` directory contains an Ollama/Qwen planning layer, deterministic capability allow-list, source-evidence ledger, Ed25519 provenance helpers, audit log, and policy tests. The hourly preview workflow runs the policy suite before generation. Mainnet, checkout, settlement, minting, and real-value transfers remain disabled; approved devnet tests are the only permitted financial path.
+
+## First-sale checkout candidate
+
+The repository now contains a fail-closed checkout candidate for the one-of-one
+`MOSUL-GENESIS-000001` at **149 USDC on Solana Mainnet**. It independently
+verifies the exact finalized token balance increase, rejects transaction replay,
+prevents duplicate sale of the 1/1 item, and gates the private package behind a
+short-lived buyer claim token. The service never receives a wallet seed phrase
+or spending key.
+
+This is not yet an active offer. Activation requires the owner's signed seller
+terms and their SHA-256, an owner-verified receiving wallet, the private delivery
+ZIP, an HTTPS deployment, and independent security review. See
+[the checkout candidate](checkout.html), [deployment notes](sale-service/README.md),
+and [security boundary](sale-service/SECURITY.md).
