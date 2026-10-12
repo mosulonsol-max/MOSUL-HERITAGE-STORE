@@ -11,12 +11,12 @@ Last reviewed: 12 October 2026.
 | Hourly generation | Ready in code | GitHub schedule, guarded orchestration, catalog persistence, Pages artifact | Select and configure an image backend; GitHub schedules run at best-effort times |
 | Local open-source image model | Ready in code | FLUX runner and dependency profile | Owner-managed Linux x64 GPU runner labeled `self-hosted`, `linux`, `x64`, `gpu` |
 | Heritage references | Partial | Narrow Wikimedia Commons reference lookup and provenance fields | Human source review, a curated source allow-list, and expanded institutional sources |
-| Integrity and provenance | Ready in code | UUID, SHA-256, visible watermark, canonical Ed25519 signing and verification | Add `ARTWORK_SIGNING_KEY_B64` as a GitHub Actions secret; retain the private seed outside the repository |
-| Comparable-sales benchmark | Guarded but unconfigured | Rejects listings, duplicates, stale rows, invalid prices, and fewer than five completed sales | A lawful HTTPS completed-sales feed via `MARKET_COMPS_API_URL` and optional key |
+| Integrity and provenance | Configured | UUID, SHA-256, visible watermark, canonical Ed25519 signing and verification; `ARTWORK_SIGNING_KEY_B64` is stored as an Actions secret | Verify the first generated signed preview on the GPU runner |
+| Comparable-sales benchmark | Ready in code | First-party finalized, non-refunded sales ledger; rejects stale/insufficient evidence | Deploy the Devnet payment service behind HTTPS; no benchmark appears before five completed sales |
 | X publishing | Existing queue workflow | OAuth-based publisher and reviewable queue | Valid X secrets and a non-empty approved queue |
 | Telegram publishing | Existing workflow | Bot publishing path | `TELEGRAM_BOT_TOKEN`, destination chat ID, and an end-to-end test |
 | Auction bids | Prototype only | Signed-bid ledger design and pause controls | Persistent service, HTTPS, abuse limits, backup/recovery, buyer terms, UI, and security review |
-| Checkout and settlement | Disabled | Fail-closed policy blocks mainnet and real value | Audited payment adapter, finality, idempotency, refund, delivery, accounting, and legal review |
+| Checkout and settlement | Devnet rehearsal only | Exact finalized native-SOL Devnet payments, idempotent settlement, refund capability, automated refund processor | Deployment host, live faucet-funded rehearsal, independent audit, delivery, accounting, and legal review |
 | NFT minting | Disabled | Policy gate and provenance inputs | Devnet adapter and tests first; owner approval is required for each financial test |
 
 ## Configuration

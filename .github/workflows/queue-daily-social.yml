@@ -1,0 +1,49 @@
+name: Queue three daily project updates
+
+on:
+  schedule:
+    - cron: '0 6,12,18 * * *'
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: Baghdad publishing slot
+        required: false
+        type: choice
+        options: [morning, afternoon, evening]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-social-queue
+  cancel-in-progress: false
+
+jobs:
+  queue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Queue one approved factual update
+        id: queue
+        env:
+          REQUESTED_SLOT: ${{ inputs.slot }}
+        run: |
+          if [ -n "$REQUESTED_SLOT" ]; then
+            python scripts/queue_daily_update.py --slot "$REQUESTED_SLOT"
+          else
+            python scripts/queue_daily_update.py
+          fi
+      - name: Commit the queue item
+        if: steps.queue.outputs.queued == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add social/updates.json
+          git commit -m 'Queue scheduled project update'
+          git push origin HEAD:main

@@ -1,0 +1,20 @@
+name: Validate self-hosted GPU runner
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: [self-hosted, linux, x64, gpu]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate NVIDIA, CUDA, FLUX dependencies, and Ollama/Qwen
+        run: /opt/mosul-runner/venv/bin/python runner/validate_gpu.py
+      - name: Confirm policy tests on the runner
+        env:
+          PYTHONPATH: ai-engine
+        run: /opt/mosul-runner/venv/bin/python -m unittest discover -s ai-engine/tests -v
