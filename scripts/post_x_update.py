@@ -6,15 +6,17 @@ import os
 import re
 import subprocess
 import sys
-import unicodedata
 
 import requests
 from requests_oauthlib import OAuth1
 
+try:
+    from .x_text import weighted_length
+except ImportError:  # Direct execution: python scripts/post_x_update.py
+    from x_text import weighted_length
+
 QUEUE = "social/updates.json"
 POST_URL = "https://api.x.com/2/tweets"
-URL_RE = re.compile(r"https?://[^\s]+", re.IGNORECASE)
-TRAILING = ".,!?;:)]}"
 
 def read_at(ref):
     if not ref or set(ref) == {"0"}:
@@ -23,23 +25,6 @@ def read_at(ref):
     if result.returncode:
         return {"updates": []}
     return json.loads(result.stdout)
-
-def weighted_length(text):
-    text = unicodedata.normalize("NFC", text)
-    if any(ord(char) > 127 for char in text):
-        raise ValueError("X update must use ASCII English text only.")
-    if any(ord(char) < 32 and char not in "\n\r\t" for char in text):
-        raise ValueError("Unsupported control character in update.")
-    total = 0
-    cursor = 0
-    for match in URL_RE.finditer(text):
-        trimmed = match.group(0).rstrip(TRAILING)
-        if not trimmed:
-            continue
-        end = match.start() + len(trimmed)
-        total += end - cursor + 23
-        cursor = end
-    return total + len(text) - cursor
 
 def main():
     before = read_at(os.environ.get("GITHUB_EVENT_BEFORE", ""))
