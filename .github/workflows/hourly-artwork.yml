@@ -1,0 +1,74 @@
+name: Hourly artwork preview pipeline
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: mosul-artwork-pipeline
+  cancel-in-progress: false
+jobs:
+  artwork:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.generate.outputs.ready }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          path: source
+      - name: Prepare persistent artwork branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: data
+      - name: Switch to artwork data branch
+        run: |
+          if git -C data ls-remote --exit-code origin refs/heads/artwork-data >/dev/null 2>&1; then
+            git -C data fetch origin artwork-data
+            git -C data switch -C artwork-data FETCH_HEAD
+          else
+            git -C data switch -c artwork-data
+          fi
+          if [ ! -f data/catalog.json ]; then echo '{"items":[]}' > data/catalog.json; fi
+      - name: Generate one preview and estimate only from verified sales
+        id: generate
+        env:
+          ARTWORK_API_URL: ${{ secrets.ARTWORK_API_URL }}
+          ARTWORK_API_KEY: ${{ secrets.ARTWORK_API_KEY }}
+          ARTWORK_MODEL: ${{ vars.ARTWORK_MODEL }}
+          MARKET_COMPS_API_URL: ${{ secrets.MARKET_COMPS_API_URL }}
+          MARKET_COMPS_API_KEY: ${{ secrets.MARKET_COMPS_API_KEY }}
+        run: python source/scripts/generate_artwork.py --output-dir data
+      - name: Save generated preview record
+        if: steps.generate.outputs.ready == 'true'
+        run: |
+          git -C data config user.name 'github-actions[bot]'
+          git -C data config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C data add catalog.json generated/
+          git -C data commit -m 'Generate hourly heritage artwork preview'
+          git -C data push origin HEAD:artwork-data
+      - name: Assemble public preview
+        if: steps.generate.outputs.ready == 'true'
+        run: |
+          cp data/catalog.json source/catalog.json
+          mkdir -p source/generated
+          cp -a data/generated/. source/generated/
+      - name: Upload Pages artifact
+        if: steps.generate.outputs.ready == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: source
+  deploy:
+    if: needs.artwork.outputs.ready == 'true'
+    needs: artwork
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - name: Publish GitHub Pages preview
+        id: deployment
+        uses: actions/deploy-pages@v4
