@@ -31,5 +31,9 @@ jobs:
         env:
           PYTHONPATH: payment-service
         run: python -m unittest discover -s payment-service/tests -v
+      - name: Test fail-closed Mainnet USDC sale path
+        env:
+          PYTHONPATH: sale-service
+        run: python -m unittest discover -s sale-service/tests -v
       - name: Validate dry-run plan
         run: python ai-engine/run_agent.py --no-execute --audit /tmp/mosul-ai-audit.jsonl
