@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Queue one factual, non-promotional project update for X and Telegram."""
+"""Queue one verified, positive project achievement for X and Telegram."""
 from __future__ import annotations
 
 import argparse
@@ -16,24 +16,40 @@ except ImportError:  # Direct execution: python scripts/queue_daily_update.py
 
 QUEUE_LIMIT = 400
 SITE = "https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/"
+NEGATIVE_OPERATION_TERMS = (
+    "blocked", "cannot", "depleted", "disabled", "error", "failed",
+    "failure", "issue", "missing", "problem", "unavailable",
+)
+ACHIEVEMENT_TERMS = ("automated", "completed", "includes", "now", "tested", "verified")
 
 POSTS = {
     "morning": (
-        "MOSUL HERITAGE build log: public code, verification notes, and release gates are visible. "
-        "The project remains a preview; payments and minting are disabled. "
+        "MOSUL HERITAGE now has a tested governance engine, deterministic policy gates, "
+        "and signed provenance. Automated tests protect generation, publishing, and Devnet payment flows. "
         f"{SITE} #MOSUL #BuildInPublic"
     ),
     "afternoon": (
-        "Inside MOSUL HERITAGE: governed AI can plan heritage-inspired art previews. "
-        "Deterministic policy checks block unknown, mainnet, and real-value actions. "
-        f"{SITE} #MOSUL #DigitalArt"
+        "MOSUL HERITAGE now automates three daily project-update slots through protected GitHub pull requests. "
+        "Every update remains traceable in the public development history. "
+        f"{SITE} #MOSUL #OpenSource"
     ),
     "evening": (
-        "MOSUL HERITAGE previews include a unique ID, SHA-256 digest, watermark, source notes, "
-        "and optional Ed25519 signature. Signatures support verification; they do not prove a sale. "
+        "MOSUL HERITAGE artwork previews now include a unique ID, SHA-256 digest, watermark, "
+        "source notes, and optional Ed25519 signature for verifiable provenance. "
         f"{SITE} #MOSUL #Provenance"
     ),
 }
+
+
+def validate_achievement_update(text: str) -> None:
+    """Reject operational problem reports and generic non-achievement updates."""
+    lowered = text.casefold()
+    if any(term in lowered for term in NEGATIVE_OPERATION_TERMS):
+        raise ValueError("daily social posts must contain positive achievements only")
+    if not any(term in lowered for term in ACHIEVEMENT_TERMS):
+        raise ValueError("daily social post must state a concrete achievement")
+    if weighted_length(text) > 280:
+        raise ValueError("daily post exceeds X's 280 weighted-character limit")
 
 
 def choose_slot(now: dt.datetime) -> str:
@@ -57,8 +73,7 @@ def queue_update(path: Path, slot: str, now: dt.datetime) -> bool:
     if any(item.get("id") == update_id for item in updates if isinstance(item, dict)):
         return False
     text = POSTS[slot]
-    if weighted_length(text) > 280:
-        raise ValueError("daily post exceeds X's 280 weighted-character limit")
+    validate_achievement_update(text)
     updates.append({"id": update_id, "status": "approved", "text": text})
     payload["updates"] = updates[-QUEUE_LIMIT:]
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
