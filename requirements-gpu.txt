@@ -1,0 +1,6 @@
+# Install a CUDA-matched PyTorch build on the self-hosted runner first.
+# The runner's CUDA version and GPU driver must match that PyTorch build.
+diffusers==0.37.0
+transformers>=4.44,<5
+accelerate>=0.34,<2
+safetensors>=0.4,<1
