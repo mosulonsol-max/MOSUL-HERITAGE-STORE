@@ -5,13 +5,17 @@ import unittest
 from pathlib import Path
 
 from scripts.queue_daily_update import POSTS, choose_slot, queue_update
+from scripts.x_text import weighted_length
 
 
 class SocialQueueTests(unittest.TestCase):
     def test_posts_fit_x_and_are_ascii(self):
         for text in POSTS.values():
             self.assertTrue(text.isascii())
-            self.assertLessEqual(len(text), 280)
+            self.assertLessEqual(weighted_length(text), 280)
+
+    def test_x_urls_use_weighted_length(self):
+        self.assertEqual(weighted_length("a https://example.com/long/path z"), 27)
 
     def test_three_baghdad_slots(self):
         self.assertEqual(choose_slot(dt.datetime(2026, 1, 1, 5, tzinfo=dt.timezone.utc)), "morning")
