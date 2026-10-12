@@ -174,7 +174,11 @@ def main():
     generated.mkdir(parents=True, exist_ok=True)
     image_path = generated / (identifier + ".png")
     image_path.write_bytes(image)
-    price = estimate_price(category)
+    try:
+        price = estimate_price(category)
+    except Exception as exc:
+        price = {"status": "unavailable", "reason": "Comparable-sales request failed; no benchmark is shown."}
+        print("Comparable-sales source unavailable: " + type(exc).__name__)
     record = {
         "id": identifier,
         "title": title,
