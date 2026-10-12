@@ -13,7 +13,7 @@ concurrency:
 jobs:
   artwork:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.ARTWORK_BACKEND == 'flux-local' && fromJSON('["self-hosted","linux","x64","gpu"]') || 'ubuntu-latest' }}
     outputs:
       ready: ${{ steps.generate.outputs.ready }}
     steps:
@@ -35,14 +35,22 @@ jobs:
             git -C data switch -c artwork-data
           fi
           if [ ! -f data/catalog.json ]; then echo '{"items":[]}' > data/catalog.json; fi
-      - name: Install image processing dependency
-        run: python -m pip install --disable-pip-version-check -r source/requirements.txt
+      - name: Install image processing and selected generator dependencies
+        env:
+          ARTWORK_BACKEND: ${{ vars.ARTWORK_BACKEND }}
+        run: |
+          python -m pip install --disable-pip-version-check -r source/requirements.txt
+          if [ "$ARTWORK_BACKEND" = "flux-local" ]; then
+            python -m pip install --disable-pip-version-check -r source/requirements-gpu.txt
+          fi
       - name: Generate one preview and estimate only from verified sales
         id: generate
         env:
+          ARTWORK_BACKEND: ${{ vars.ARTWORK_BACKEND }}
           ARTWORK_API_URL: ${{ secrets.ARTWORK_API_URL }}
           ARTWORK_API_KEY: ${{ secrets.ARTWORK_API_KEY }}
           ARTWORK_MODEL: ${{ vars.ARTWORK_MODEL }}
+          ARTWORK_REFERENCE_QUERY: ${{ vars.ARTWORK_REFERENCE_QUERY }}
           MARKET_COMPS_API_URL: ${{ secrets.MARKET_COMPS_API_URL }}
           MARKET_COMPS_API_KEY: ${{ secrets.MARKET_COMPS_API_KEY }}
         run: python source/scripts/generate_artwork.py --output-dir data
@@ -76,3 +84,4 @@ jobs:
       - name: Publish GitHub Pages preview
         id: deployment
         uses: actions/deploy-pages@v4
+
