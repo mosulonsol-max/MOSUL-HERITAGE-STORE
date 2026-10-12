@@ -6,6 +6,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import re
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -25,7 +26,7 @@ ACHIEVEMENT_TERMS = ("automated", "completed", "includes", "now", "tested", "ver
 POSTS = {
     "morning": (
         "MOSUL HERITAGE now has a tested governance engine, deterministic policy gates, "
-        "and signed provenance. Automated tests protect generation, publishing, and Devnet payment flows. "
+        "and support for optional Ed25519 provenance. Automated tests cover generation, publishing, and Devnet payment flows. "
         f"{SITE} #MOSUL #BuildInPublic"
     ),
     "afternoon": (
@@ -44,7 +45,7 @@ POSTS = {
 def validate_achievement_update(text: str) -> None:
     """Reject operational problem reports and generic non-achievement updates."""
     lowered = text.casefold()
-    if any(term in lowered for term in NEGATIVE_OPERATION_TERMS):
+    if any(re.search(rf"\b{re.escape(term)}\b", lowered) for term in NEGATIVE_OPERATION_TERMS):
         raise ValueError("daily social posts must contain positive achievements only")
     if not any(term in lowered for term in ACHIEVEMENT_TERMS):
         raise ValueError("daily social post must state a concrete achievement")
