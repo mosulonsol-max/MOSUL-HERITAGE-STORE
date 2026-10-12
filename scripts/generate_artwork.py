@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+"""Generate one watermarked public preview; never enable checkout or minting."""
+import argparse
+import base64
+import datetime as dt
+import hashlib
+import io
+import json
+import os
+import statistics
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
+from pathlib import Path
+from PIL import Image, ImageDraw, ImageFont
+
+MAX_ITEMS = 120
+MIN_SALES = 5
+MAX_AGE_DAYS = 90
+DIRECTIONS = [
+    ("Courtyard Light Study", "A quiet courtyard inspired by Mosul, geometric brickwork, warm limestone, late afternoon light, contemporary editorial composition."),
+    ("River Memory Study", "An abstract view of the Tigris as a ribbon of blue and gold through layered Mosul-inspired forms, contemporary fine-art print."),
+    ("Brick and Shadow Study", "A sculptural arrangement of sunlit brick arches and long shadows, inspired by northern Iraqi craft, modern museum-quality art."),
+    ("Garden After Rain", "A peaceful garden courtyard after rain, stone, water reflections and native greenery, Mosul-inspired contemporary art."),
+]
+
+def utc_now():
+    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+
+def request_json(url, method="GET", payload=None, api_key=None):
+    if urllib.parse.urlparse(url).scheme != "https":
+        raise ValueError("Configured API endpoints must use HTTPS")
+    body = json.dumps(payload).encode() if payload is not None else None
+    headers = {"Accept": "application/json"}
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+    if api_key:
+        headers["Authorization"] = "Bearer " + api_key
+    req = urllib.request.Request(url, data=body, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=90) as response:
+            if response.status < 200 or response.status >= 300:
+                raise ValueError("Provider returned an unsuccessful status")
+            return json.loads(response.read(32_000_000))
+    except urllib.error.HTTPError as exc:
+        raise ValueError("Provider request failed with HTTP " + str(exc.code)) from None
+    except urllib.error.URLError:
+        raise ValueError("Provider endpoint could not be reached") from None
+
+def prompt_for(now):
+    index = now.hour % len(DIRECTIONS)
+    title, direction = DIRECTIONS[index]
+    prompt = (
+        "Create one original, high-quality digital artwork for a cultural collectibles preview. "
+        + direction + " The scene is interpretive contemporary art, not a documentary photograph, "
+        "verified reconstruction, or claim about an exact historical site. No words, letters, logos, "
+        "watermarks, signatures, or invented historical details. Square image, refined color and texture."
+    )
+    return title, prompt
+
+def get_png(prompt):
+    endpoint = os.environ.get("ARTWORK_API_URL", "").strip()
+    key = os.environ.get("ARTWORK_API_KEY", "").strip()
+    model = os.environ.get("ARTWORK_MODEL", "").strip()
+    if not endpoint or not key:
+        return None
+    payload = {"prompt": prompt, "size": "1024x1024", "n": 1, "response_format": "b64_json"}
+    if model:
+        payload["model"] = model
+    result = request_json(endpoint, "POST", payload, key)
+    data = result.get("data") if isinstance(result, dict) else None
+    encoded = data[0].get("b64_json") if isinstance(data, list) and data and isinstance(data[0], dict) else None
+    if not encoded:
+        raise ValueError("Image API did not return a base64 image")
+    raw = base64.b64decode(encoded, validate=True)
+    if len(raw) > 20_000_000 or not raw.startswith(b"PNG
+
+"):
+        raise ValueError("Image must be a PNG under 20 MB")
+    width, height = int.from_bytes(raw[16:20], "big"), int.from_bytes(raw[20:24], "big")
+    if width < 512 or height < 512 or width > 8192 or height > 8192:
+        raise ValueError("Image dimensions are outside the accepted range")
+    return raw
+
+def watermark_preview(raw):
+    with Image.open(io.BytesIO(raw)) as source:
+        image = source.convert("RGBA")
+    band_height = max(54, image.width // 13)
+    band = Image.new("RGBA", (image.width, band_height), (20, 33, 29, 210))
+    draw = ImageDraw.Draw(band)
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", max(18, image.width // 44))
+    except OSError:
+        font = ImageFont.load_default()
+    label = "MOSUL HERITAGE  |  PREVIEW  |  NOT FOR SALE"
+    draw.text((image.width // 30, band_height // 3), label, font=font, fill=(255, 250, 239, 255))
+    image.alpha_composite(band, (0, image.height - band_height))
+    output = io.BytesIO()
+    image.convert("RGB").save(output, format="PNG", optimize=True)
+    return output.getvalue()
+
+def estimate_price(category):
+    endpoint = os.environ.get("MARKET_COMPS_API_URL", "").strip()
+    key = os.environ.get("MARKET_COMPS_API_KEY", "").strip()
+    if not endpoint:
+        return {"status": "unavailable", "reason": "Comparable-sales source is not configured."}
+    response = request_json(endpoint, api_key=key)
+    rows = response.get("comparables", []) if isinstance(response, dict) else []
+    cutoff = utc_now() - dt.timedelta(days=MAX_AGE_DAYS)
+    sales = []
+    sources = set()
+    for row in rows:
+        if not isinstance(row, dict) or row.get("status", "").lower() != "sold":
+            continue
+        if str(row.get("category", "")).strip().casefold() != category.casefold():
+            continue
+        try:
+            sold_at = dt.datetime.fromisoformat(str(row["sold_at"]).replace("Z", "+00:00"))
+            amount = float(row["price_usd"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if sold_at.tzinfo is None or sold_at < cutoff or sold_at > utc_now() or amount <= 0:
+            continue
+        sales.append(amount)
+        source = row.get("source")
+        if isinstance(source, str) and source.startswith("https://"):
+            sources.add(source)
+    if len(sales) < MIN_SALES:
+        return {"status": "unavailable", "reason": "Fewer than five valid, recent completed sales matched this category.", "sale_count": len(sales)}
+    sales.sort()
+    median = statistics.median(sales)
+    return {
+        "status": "benchmark_only",
+        "currency": "USD",
+        "median_completed_sale": round(median, 2),
+        "observed_range": [round(sales[0], 2), round(sales[-1], 2)],
+        "sale_count": len(sales),
+        "window_days": MAX_AGE_DAYS,
+        "sources": sorted(sources)[:5],
+        "disclaimer": "Historical comparable-sales benchmark only; not an offer, appraisal, or sale price.",
+    }
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output-dir", required=True)
+    args = parser.parse_args()
+    out = Path(args.output_dir)
+    output_file = os.environ.get("GITHUB_OUTPUT")
+    if not os.environ.get("ARTWORK_API_URL") or not os.environ.get("ARTWORK_API_KEY"):
+        print("Image provider is not configured; no image was generated.")
+        if output_file:
+            Path(output_file).write_text("ready=false\n", encoding="utf-8")
+        return 0
+    now = utc_now()
+    title, prompt = prompt_for(now)
+    image = watermark_preview(get_png(prompt))
+    category = "digital-art-one-of-one"
+    identifier = "MH-" + now.strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
+    generated = out / "generated"
+    generated.mkdir(parents=True, exist_ok=True)
+    image_path = generated / (identifier + ".png")
+    image_path.write_bytes(image)
+    price = estimate_price(category)
+    record = {
+        "id": identifier,
+        "title": title,
+        "category": category,
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "image": "generated/" + image_path.name,
+        "sha256": hashlib.sha256(image).hexdigest(),
+        "classification": "AI-generated, heritage-inspired contemporary artwork; not historical evidence.",
+        "status": "PUBLIC PREVIEW — NOT FOR SALE",
+        "price_benchmark": price,
+        "watermark_status": "Unverified preview; no signed authenticity claim.",
+        "mint_status": "Not minted",
+    }
+    catalog_path = out / "catalog.json"
+    try:
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+        items = catalog.get("items", [])
+        if not isinstance(items, list):
+            items = []
+    except (FileNotFoundError, json.JSONDecodeError):
+        items = []
+    items = [record] + [item for item in items if item.get("id") != identifier]
+    removed = items[MAX_ITEMS:]
+    items = items[:MAX_ITEMS]
+    catalog_path.write_text(json.dumps({"items": items}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    for old in removed:
+        old_image = old.get("image", "")
+        if old_image.startswith("generated/"):
+            try:
+                (out / old_image).unlink(missing_ok=True)
+            except OSError:
+                pass
+    if output_file:
+        Path(output_file).write_text("ready=true\n", encoding="utf-8")
+    print("Generated preview " + identifier + "; sale and mint remain disabled.")
+    return 0
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        print("Artwork pipeline stopped safely: " + str(exc), file=sys.stderr)
+        raise SystemExit(1)
