@@ -64,6 +64,7 @@ class Product:
     amount_raw: int
     terms_version: str
     terms_sha256: str
+    merchant_wallet: str = ""
 
 
 def load_product(path: str | Path) -> Product:
@@ -82,6 +83,7 @@ def load_product(path: str | Path) -> Product:
         id=str(data["id"]), title=str(data["title"]), category=str(data["category"]),
         price_usdc=str(data["price_usdc"]), amount_raw=amount,
         terms_version=str(data["terms_version"]), terms_sha256=data["terms_sha256"],
+        merchant_wallet=str(data.get("merchant_wallet", "")),
     )
 
 
