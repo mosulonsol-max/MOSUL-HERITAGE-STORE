@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import datetime as dt
+import decimal
 import hashlib
 import hmac
 import json
@@ -69,11 +70,12 @@ def load_product(path: str | Path) -> Product:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     required = ("id", "title", "category", "price_usdc", "amount_raw",
                 "terms_version", "terms_sha256")
-    if any(not data.get(name) for name in required):
+    if any(name not in data or data[name] is None for name in required):
         raise ValueError("product configuration is incomplete")
     amount = int(data["amount_raw"])
-    if amount <= 0:
-        raise ValueError("product amount must be positive")
+    auction_only = data.get("sale_type") == "timed_ascending_auction"
+    if amount < 0 or (amount == 0 and not auction_only):
+        raise ValueError("product amount must be positive unless configured for auction")
     if not re.fullmatch(r"[0-9a-f]{64}", data["terms_sha256"]):
         raise ValueError("invalid terms hash")
     return Product(
@@ -108,7 +110,8 @@ def connect(path: str | Path) -> sqlite3.Connection:
         expires_at TEXT NOT NULL,
         payment_signature TEXT UNIQUE,
         paid_at TEXT,
-        download_count INTEGER NOT NULL DEFAULT 0
+        download_count INTEGER NOT NULL DEFAULT 0,
+        auction_bid_id TEXT
       );
       CREATE TABLE IF NOT EXISTS completed_sales (
         transaction_id TEXT PRIMARY KEY,
@@ -124,6 +127,11 @@ def connect(path: str | Path) -> sqlite3.Connection:
       CREATE UNIQUE INDEX IF NOT EXISTS one_active_order_per_product
         ON orders(product_id) WHERE status IN ('pending','paid');
     """)
+    columns = {row[1] for row in db.execute("PRAGMA table_info(orders)")}
+    if "auction_bid_id" not in columns:
+        db.execute("ALTER TABLE orders ADD COLUMN auction_bid_id TEXT")
+    db.execute("CREATE UNIQUE INDEX IF NOT EXISTS one_order_per_auction_bid "
+               "ON orders(auction_bid_id) WHERE auction_bid_id IS NOT NULL")
     return db
 
 
@@ -136,20 +144,30 @@ def expire_stale(db: sqlite3.Connection, product_id: str) -> None:
 
 def create_order(db: sqlite3.Connection, *, product: Product, merchant_wallet: str,
                  idempotency_key: str, buyer_wallet: str | None,
-                 accepted_terms_sha256: str, ttl_minutes: int = 30) -> dict:
+                 accepted_terms_sha256: str, ttl_minutes: int = 30,
+                 price_usdc: str | None = None, auction_bid_id: str | None = None) -> dict:
     merchant_wallet = validate_pubkey(merchant_wallet)
     buyer_wallet = validate_pubkey(buyer_wallet) if buyer_wallet else None
     if not re.fullmatch(r"[A-Za-z0-9._:-]{8,100}", idempotency_key or ""):
         raise ValueError("invalid idempotency key")
     if not hmac.compare_digest(accepted_terms_sha256 or "", product.terms_sha256):
         raise PermissionError("the current buyer terms must be accepted")
+    selected_price = price_usdc if price_usdc is not None else product.price_usdc
+    try:
+        amount = decimal.Decimal(selected_price)
+    except (decimal.InvalidOperation, TypeError):
+        raise ValueError("a valid price or winning bid is required") from None
+    if not amount.is_finite() or amount <= 0 or amount.as_tuple().exponent < -2:
+        raise ValueError("payment must be a positive USDC amount with at most two decimals")
+    amount_raw = int(amount * 1_000_000)
+    formatted_price = str(amount.quantize(decimal.Decimal("0.01")))
     existing = db.execute(
         "SELECT * FROM orders WHERE idempotency_key=?", (idempotency_key,)
     ).fetchone()
     if existing:
         return public_order(existing, product)
     now = utc_now()
-    expires = now + dt.timedelta(minutes=max(10, min(int(ttl_minutes), 60)))
+    expires = now + dt.timedelta(minutes=max(5, min(int(ttl_minutes), 1440)))
     order_id = secrets.token_urlsafe(24)
     claim_secret = secrets.token_urlsafe(32)
     claim_secret_hash = hashlib.sha256(claim_secret.encode()).hexdigest()
@@ -171,12 +189,12 @@ def create_order(db: sqlite3.Connection, *, product: Product, merchant_wallet: s
             """INSERT INTO orders
             (id,idempotency_key,product_id,buyer_wallet,merchant_wallet,mint,amount_raw,
              price_usd,reference_key,memo,claim_secret_hash,terms_version,terms_sha256,status,created_at,
-             expires_at,payment_signature,paid_at,download_count)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)""",
+             expires_at,payment_signature,paid_at,download_count,auction_bid_id)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?)""",
             (order_id, idempotency_key, product.id, buyer_wallet, merchant_wallet,
-             USDC_MINT, product.amount_raw, product.price_usdc, reference, memo, claim_secret_hash,
+             USDC_MINT, amount_raw, formatted_price, reference, memo, claim_secret_hash,
              product.terms_version, product.terms_sha256, "pending", now.isoformat(),
-             expires.isoformat(), None, None),
+             expires.isoformat(), None, None, auction_bid_id),
         )
     row = db.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
     return public_order(row, product) | {"claim_secret": claim_secret}
@@ -184,7 +202,7 @@ def create_order(db: sqlite3.Connection, *, product: Product, merchant_wallet: s
 
 def solana_pay_uri(order: sqlite3.Row, product: Product) -> str:
     query = urllib.parse.urlencode({
-        "amount": product.price_usdc,
+        "amount": order["price_usd"],
         "spl-token": order["mint"],
         "reference": order["reference_key"],
         "label": "MOSUL HERITAGE",
@@ -199,7 +217,7 @@ def public_order(order: sqlite3.Row, product: Product) -> dict:
         "id": order["id"], "product_id": order["product_id"],
         "title": product.title, "status": order["status"],
         "network": "mainnet-beta", "asset": "USDC", "mint": order["mint"],
-        "amount_raw": order["amount_raw"], "amount": product.price_usdc,
+        "amount_raw": order["amount_raw"], "amount": order["price_usd"],
         "merchant_wallet": order["merchant_wallet"],
         "reference": order["reference_key"], "memo": order["memo"],
         "terms_version": order["terms_version"],
@@ -304,9 +322,12 @@ def confirm_order(db: sqlite3.Connection, *, order_id: str, signature: str,
             raise RuntimeError("order changed while payment was being confirmed")
         db.execute(
             "INSERT INTO completed_sales VALUES (?,?,?,?,?,?,?,'sold')",
-            (signature, order_id, product.id, product.category, float(product.price_usdc),
+            (signature, order_id, product.id, product.category, float(row["price_usd"]),
              paid_at, "https://solscan.io/tx/" + signature),
         )
+        if row["auction_bid_id"]:
+            db.execute("UPDATE auction_bids SET status='paid' WHERE id=?",
+                       (row["auction_bid_id"],))
     paid = db.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
     return paid_response(paid, delivery_secret)
 
