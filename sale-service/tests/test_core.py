@@ -17,8 +17,9 @@ SECRET = "s" * 48
 
 
 class Rpc:
-    def __init__(self, row):
+    def __init__(self, row, payment_amount=149_000_000):
         self.row = row
+        self.payment_amount = payment_amount
 
     def transaction(self, signature):
         block_time = int(dt.datetime.fromisoformat(self.row["created_at"]).timestamp())
@@ -29,7 +30,7 @@ class Rpc:
                 "preTokenBalances": [{"accountIndex": 2, "mint": self.row["mint"],
                     "owner": MERCHANT, "uiTokenAmount": {"amount": "1000000"}}],
                 "postTokenBalances": [{"accountIndex": 2, "mint": self.row["mint"],
-                    "owner": MERCHANT, "uiTokenAmount": {"amount": "150000000"}}],
+                    "owner": MERCHANT, "uiTokenAmount": {"amount": str(1_000_000 + self.payment_amount)}}],
             },
             "transaction": {"message": {"accountKeys": [
                 {"pubkey": BUYER}, {"pubkey": self.row["reference_key"]},
@@ -68,6 +69,23 @@ class SaleTests(unittest.TestCase):
         self.assertEqual(order["amount"], "75.50")
         self.assertEqual(order["amount_raw"], 75_500_000)
         self.assertIn("amount=75.50", order["solana_pay_uri"])
+
+    def test_dynamic_winning_bid_is_the_settled_and_recorded_price(self):
+        order = create_order(
+            self.db, product=PRODUCT, merchant_wallet=MERCHANT,
+            idempotency_key="checkout-auction-dynamic", buyer_wallet=BUYER,
+            accepted_terms_sha256=TERMS, price_usdc="75.50",
+        )
+        row = self.db.execute("SELECT * FROM orders WHERE id=?", (order["id"],)).fetchone()
+        result = confirm_order(
+            self.db, order_id=order["id"], signature=SIGNATURE,
+            claim_secret=order["claim_secret"], product=PRODUCT,
+            rpc=Rpc(row, payment_amount=75_500_000), delivery_secret=SECRET,
+        )
+        self.assertEqual(result["status"], "paid")
+        self.assertEqual(self.db.execute(
+            "SELECT price_usd FROM completed_sales WHERE order_id=?", (order["id"],)
+        ).fetchone()[0], 75.50)
 
     def test_one_of_one_reservation_blocks_second_order(self):
         self.order()
