@@ -14,7 +14,8 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core import (MainnetRpc, authorize_download, comparable_sales, confirm_order,
-                  connect, create_order, load_product, validate_pubkey)
+                  connect, create_order, load_product, validate_pubkey,
+                  verify_seller_terms_signature)
 from auction import (AuctionConfig, auction_snapshot, create_bid_challenge,
                     init_auction, submit_bid, usdc_raw, usdc_text, winning_bid)
 
@@ -28,23 +29,31 @@ RPC_URL = os.environ.get("SOLANA_MAINNET_RPC", "https://api.mainnet-beta.solana.
 ALLOWED_ORIGIN = os.environ.get("SALE_ALLOWED_ORIGIN", "")
 ADMIN_TOKEN = os.environ.get("SALE_ADMIN_TOKEN", "")
 SELLER_LEGAL_NAME = os.environ.get("SELLER_LEGAL_NAME", "")
+SELLER_TRADE_NAME = os.environ.get("SELLER_TRADE_NAME", "MOSUL HERITAGE STORE")
 SELLER_COUNTRY = os.environ.get("SELLER_COUNTRY", "")
 SELLER_ADDRESS = os.environ.get("SELLER_ADDRESS", "")
 SELLER_SUPPORT_EMAIL = os.environ.get("SELLER_SUPPORT_EMAIL", "")
+SELLER_TERMS_SIGNED_AT = os.environ.get("SELLER_TERMS_SIGNED_AT", "")
+SELLER_TERMS_SIGNATURE_B64 = os.environ.get("SELLER_TERMS_SIGNATURE_B64", "")
 PRODUCT = load_product(PRODUCT_PATH)
 MERCHANT_WALLET = os.environ.get("SALES_MERCHANT_WALLET", PRODUCT.merchant_wallet)
 
 
 def load_auction_config() -> AuctionConfig | None:
-    names = ("SALE_AUCTION_ID", "SALE_AUCTION_STARTS_AT", "SALE_AUCTION_ENDS_AT",
-             "SALE_AUCTION_OPENING_BID_USDC", "SALE_AUCTION_INCREMENT_USDC")
+    names = ("SALE_AUCTION_ID", "SALE_AUCTION_STARTS_AT", "SALE_AUCTION_ENDS_AT")
     if not all(os.environ.get(name) for name in names):
         return None
     try:
         starts = dt.datetime.fromisoformat(os.environ[names[1]].replace("Z", "+00:00"))
         ends = dt.datetime.fromisoformat(os.environ[names[2]].replace("Z", "+00:00"))
+        opening = PRODUCT.auction_opening_bid_usdc
+        increment = PRODUCT.auction_increment_usdc
+        if usdc_raw(os.environ.get("SALE_AUCTION_OPENING_BID_USDC", opening)) != usdc_raw(opening):
+            raise ValueError("opening bid differs from the signed product terms")
+        if usdc_raw(os.environ.get("SALE_AUCTION_INCREMENT_USDC", increment)) != usdc_raw(increment):
+            raise ValueError("bid increment differs from the signed product terms")
         return AuctionConfig(os.environ[names[0]], starts, ends,
-                             usdc_raw(os.environ[names[3]]), usdc_raw(os.environ[names[4]]))
+                             usdc_raw(opening), usdc_raw(increment))
     except (ValueError, TypeError) as exc:
         raise SystemExit(f"invalid auction configuration: {exc}") from None
 
@@ -106,7 +115,8 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/health":
             return self._json(200, {"status": "ready", "network": "mainnet-beta",
                                     "product_id": PRODUCT.id,
-                                    "seller": {"name": SELLER_LEGAL_NAME,
+                                    "seller": {"trade_name": SELLER_TRADE_NAME,
+                                               "name": SELLER_LEGAL_NAME,
                                                "country": SELLER_COUNTRY,
                                                "address": SELLER_ADDRESS,
                                                "support_email": SELLER_SUPPORT_EMAIL}})
@@ -202,8 +212,6 @@ class Handler(BaseHTTPRequestHandler):
 def validate_startup() -> None:
     if os.environ.get("SALES_ENABLED") != "1":
         raise SystemExit("SALES_ENABLED=1 is required")
-    if os.environ.get("SELLER_TERMS_ACCEPTED") != "1":
-        raise SystemExit("SELLER_TERMS_ACCEPTED=1 is required")
     if not MERCHANT_WALLET or len(DELIVERY_SECRET) < 32:
         raise SystemExit("SALES_MERCHANT_WALLET and a strong DELIVERY_TOKEN_SECRET are required")
     try:
@@ -214,11 +222,20 @@ def validate_startup() -> None:
         raise SystemExit("DELIVERY_PACKAGE_PATH must point to the private product ZIP")
     if PRODUCT.terms_sha256 == "0" * 64 or PRODUCT.terms_version == "owner-signature-required":
         raise SystemExit("replace the draft buyer terms with the signed version and its SHA-256")
+    try:
+        verify_seller_terms_signature(
+            legal_name=SELLER_LEGAL_NAME, trade_name=SELLER_TRADE_NAME,
+            wallet=MERCHANT_WALLET, product=PRODUCT,
+            signed_at=SELLER_TERMS_SIGNED_AT,
+            signature_b64=SELLER_TERMS_SIGNATURE_B64,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise SystemExit(f"valid seller wallet signature over the exact terms is required: {exc}") from None
     if not ALLOWED_ORIGIN.startswith("https://"):
         raise SystemExit("SALE_ALLOWED_ORIGIN must be the HTTPS storefront origin")
     if not AUCTION:
         raise SystemExit("complete the auction id, dates, opening bid, and increment")
-    if not SELLER_LEGAL_NAME or not SELLER_COUNTRY or not SELLER_ADDRESS or not SELLER_SUPPORT_EMAIL:
+    if not SELLER_LEGAL_NAME or not SELLER_TRADE_NAME or not SELLER_COUNTRY or not SELLER_ADDRESS or not SELLER_SUPPORT_EMAIL:
         raise SystemExit("seller name, country, address, and support email are required for buyer disclosure")
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with connect(DB_PATH) as db:

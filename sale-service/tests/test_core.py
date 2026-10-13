@@ -1,11 +1,16 @@
+import base64
 import datetime as dt
 import hashlib
 import tempfile
 import unittest
 from pathlib import Path
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
 from core import (Product, authorize_download, b58encode, confirm_order, connect,
-                  create_order, validate_pubkey, verify_transaction)
+                  create_order, seller_terms_message, validate_pubkey,
+                  verify_seller_terms_signature, verify_transaction)
 
 MERCHANT = "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu"
 BUYER = "So11111111111111111111111111111111111111112"
@@ -134,6 +139,25 @@ class SaleTests(unittest.TestCase):
     def test_invalid_pubkey_is_rejected(self):
         with self.assertRaises(ValueError):
             validate_pubkey("not-a-wallet")
+
+    def test_seller_terms_signature_binds_identity_wallet_and_hash(self):
+        private = Ed25519PrivateKey.generate()
+        wallet = b58encode(private.public_key().public_bytes(
+            serialization.Encoding.Raw, serialization.PublicFormat.Raw))
+        signed_at = "2026-10-13T12:00:00.000Z"
+        message = seller_terms_message(
+            legal_name="Example Seller", trade_name="MOSUL HERITAGE STORE",
+            wallet=wallet, product=PRODUCT, signed_at=signed_at)
+        signature = base64.b64encode(private.sign(message.encode("utf-8"))).decode()
+        self.assertEqual(message, verify_seller_terms_signature(
+            legal_name="Example Seller", trade_name="MOSUL HERITAGE STORE",
+            wallet=wallet, product=PRODUCT, signed_at=signed_at,
+            signature_b64=signature))
+        with self.assertRaises(PermissionError):
+            verify_seller_terms_signature(
+                legal_name="Another Seller", trade_name="MOSUL HERITAGE STORE",
+                wallet=wallet, product=PRODUCT, signed_at=signed_at,
+                signature_b64=signature)
 
     def test_download_token_limit(self):
         order = self.order()

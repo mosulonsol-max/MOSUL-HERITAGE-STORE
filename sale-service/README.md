@@ -14,8 +14,9 @@ The buyer signs in their own wallet. The seller receives USDC directly.
 ## Auction price
 
 The final price is the highest eligible signed bid at the announced close. The
-opening bid, minimum increment, start, and close are required deployment
-settings; there is no fixed sale price. A winner has 24 hours to pay. If the
+evidence-backed opening bid is 100 USDC and the minimum increment is 10 USDC.
+Start and close are required deployment settings; there is no fixed sale
+price. A winner has 24 hours to pay. If the
 payment window expires, that bidder is marked as defaulted and the next highest
 valid bidder may create an order. A bid is an offer, not proof of payment.
 
@@ -24,11 +25,14 @@ valid bidder may create an order. A bid is an offer, not proof of payment.
 The service refuses to start until all of the following are supplied:
 
 - SALES_ENABLED=1
-- SELLER_TERMS_ACCEPTED=1
 - SALES_MERCHANT_WALLET: an owner-verified Solana wallet, never a mint address
 - SALE_AUCTION_ID, SALE_AUCTION_STARTS_AT, SALE_AUCTION_ENDS_AT
-- SALE_AUCTION_OPENING_BID_USDC and SALE_AUCTION_INCREMENT_USDC
-- SELLER_LEGAL_NAME, SELLER_COUNTRY, SELLER_ADDRESS, SELLER_SUPPORT_EMAIL
+- optional SALE_AUCTION_OPENING_BID_USDC and SALE_AUCTION_INCREMENT_USDC may
+  repeat, but may not override, the signed product settings (100/10 USDC)
+- SELLER_LEGAL_NAME, SELLER_TRADE_NAME, SELLER_COUNTRY, SELLER_ADDRESS,
+  SELLER_SUPPORT_EMAIL
+- SELLER_TERMS_SIGNED_AT and SELLER_TERMS_SIGNATURE_B64, produced by
+  `seller-sign-terms.html` using the receiving wallet
 - DELIVERY_TOKEN_SECRET: at least 32 random characters
 - DELIVERY_PACKAGE_PATH: private ZIP containing the Collector Master,
   certificate, verification records, and signed buyer license
@@ -36,8 +40,9 @@ The service refuses to start until all of the following are supplied:
 - SOLANA_MAINNET_RPC: optional private HTTPS RPC; defaults to the public RPC
 - SALE_ADMIN_TOKEN: private token for the completed-sales feed
 
-Before activation, replace the placeholder terms version and SHA-256 in
-products/MOSUL-GENESIS-000001.json with the exact hash of the signed terms.
+The service verifies the detached seller wallet signature against the exact
+terms version and SHA-256 in products/MOSUL-GENESIS-000001.json. A changed file,
+identity, wallet, version or timestamp invalidates the signature.
 Deployment must provide HTTPS, durable database backups, log redaction,
 monitoring, request throttling, and an independent security review.
 Do not launch USDC checkout until the seller has confirmed the payment method

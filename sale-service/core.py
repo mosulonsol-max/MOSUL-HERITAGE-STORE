@@ -15,6 +15,9 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
 MAINNET_RPC = "https://api.mainnet-beta.solana.com"
 USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 SIGNATURE_RE = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{64,100}$")
@@ -65,6 +68,8 @@ class Product:
     terms_version: str
     terms_sha256: str
     merchant_wallet: str = ""
+    auction_opening_bid_usdc: str = ""
+    auction_increment_usdc: str = ""
 
 
 def load_product(path: str | Path) -> Product:
@@ -84,7 +89,49 @@ def load_product(path: str | Path) -> Product:
         price_usdc=str(data["price_usdc"]), amount_raw=amount,
         terms_version=str(data["terms_version"]), terms_sha256=data["terms_sha256"],
         merchant_wallet=str(data.get("merchant_wallet", "")),
+        auction_opening_bid_usdc=str(data.get("auction_opening_bid_usdc", "")),
+        auction_increment_usdc=str(data.get("auction_increment_usdc", "")),
     )
+
+
+def seller_terms_message(*, legal_name: str, trade_name: str, wallet: str,
+                         product: Product, signed_at: str) -> str:
+    """Return the exact UTF-8 message the owner must sign with the sale wallet."""
+    if not all((legal_name.strip(), trade_name.strip(), signed_at.strip())):
+        raise ValueError("seller identity and signed time are required")
+    validate_pubkey(wallet)
+    try:
+        timestamp = dt.datetime.fromisoformat(signed_at.replace("Z", "+00:00"))
+    except ValueError:
+        raise ValueError("seller terms signature time must be ISO-8601") from None
+    if timestamp.tzinfo is None:
+        raise ValueError("seller terms signature time must include a timezone")
+    return (
+        "MOSUL HERITAGE SELLER TERMS ACCEPTANCE\n"
+        f"Seller: {legal_name.strip()}\n"
+        f"Trade name: {trade_name.strip()}\n"
+        f"Wallet: {wallet}\n"
+        f"Product: {product.id}\n"
+        f"Terms version: {product.terms_version}\n"
+        f"Terms SHA-256: {product.terms_sha256}\n"
+        f"Signed at: {signed_at}\n"
+        "I approve these exact auction and buyer terms and authorize this wallet "
+        "to receive the winning payment."
+    )
+
+
+def verify_seller_terms_signature(*, legal_name: str, trade_name: str, wallet: str,
+                                  product: Product, signed_at: str,
+                                  signature_b64: str) -> str:
+    message = seller_terms_message(legal_name=legal_name, trade_name=trade_name,
+                                   wallet=wallet, product=product, signed_at=signed_at)
+    try:
+        signature = base64.b64decode(signature_b64, validate=True)
+        Ed25519PublicKey.from_public_bytes(b58decode(wallet)).verify(
+            signature, message.encode("utf-8"))
+    except (ValueError, InvalidSignature):
+        raise PermissionError("seller terms wallet signature did not verify") from None
+    return message
 
 
 def connect(path: str | Path) -> sqlite3.Connection:
