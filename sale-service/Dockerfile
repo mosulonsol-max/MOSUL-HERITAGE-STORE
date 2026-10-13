@@ -1,7 +1,9 @@
 FROM python:3.12-slim
 
 WORKDIR /app
-COPY core.py server.py ./
+COPY core.py server.py auction.py ./
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 COPY products ./products
 
 RUN useradd --create-home --uid 10001 sale && mkdir -p /app/data /app/private \
