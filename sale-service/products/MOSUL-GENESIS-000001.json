@@ -9,11 +9,11 @@
   "payment_asset": "USDC",
   "payment_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   "network": "solana-mainnet-beta",
-  "merchant_wallet": "GFV3jVRYQUL17bvY7KYRoGST6gPrVsxfBLMumGdUkaKU",
+  "merchant_wallet": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
   "auction_opening_bid_usdc": "100.00",
   "auction_increment_usdc": "10.00",
   "reserve_policy": "no_hidden_reserve_opening_bid_is_minimum_sale_price",
-  "terms_version": "2026-10-13-v1",
-  "terms_sha256": "e9173a67b80d36be52330297efcc185d01d0496b077573a96b26e039d7e4318f",
+  "terms_version": "2026-10-13-v2",
+  "terms_sha256": "83e02c0b442d25c5217f459979390759d562c0265cc5bbc7b7b7c7af7380fe9c",
   "activation_status": "blocked_until_owner_wallet_signature_business_address_and_deployment_are_supplied"
 }

@@ -1,11 +1,11 @@
 # MOSUL-GENESIS-000001 — auction and buyer terms
 
-- **Version:** 2026-10-13-v1
+- **Version:** 2026-10-13-v2
 - **Trade name:** MOSUL HERITAGE STORE
 - **Seller jurisdiction:** Republic of Iraq
 - **Legal seller and support:** disclosed on the live lot page from the
   production seller record
-- **Receiving wallet:** `GFV3jVRYQUL17bvY7KYRoGST6gPrVsxfBLMumGdUkaKU`
+- **Receiving wallet:** `EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu`
 
 These terms and the lot page are the entire agreement for this timed online
 auction. The lot page supplies the legal seller, business/service address,
