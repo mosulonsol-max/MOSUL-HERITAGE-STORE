@@ -59,6 +59,16 @@ class SaleTests(unittest.TestCase):
         self.assertIn("spl-token=", first["solana_pay_uri"])
         self.assertIn("reference=", first["solana_pay_uri"])
 
+    def test_auction_order_uses_the_winning_bid_not_a_catalog_price(self):
+        order = create_order(
+            self.db, product=PRODUCT, merchant_wallet=MERCHANT,
+            idempotency_key="checkout-auction-123", buyer_wallet=BUYER,
+            accepted_terms_sha256=TERMS, price_usdc="75.50", auction_bid_id="bid-123",
+        )
+        self.assertEqual(order["amount"], "75.50")
+        self.assertEqual(order["amount_raw"], 75_500_000)
+        self.assertIn("amount=75.50", order["solana_pay_uri"])
+
     def test_one_of_one_reservation_blocks_second_order(self):
         self.order()
         with self.assertRaises(ValueError):
