@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MOSUL HERITAGE — Seller terms signature</title>
 <style>
-body{margin:0;background:#f4efe5;color:#17231f;font:16px/1.6 system-ui,sans-serif}.wrap{width:min(760px,calc(100% - 28px));margin:40px auto}.panel{background:#fffdf8;border:1px solid #d7cdbb;padding:24px}h1{font:42px/1.1 Georgia,serif}button{border:0;background:#164b3a;color:#fff;padding:13px 18px;font-weight:800;cursor:pointer}button:disabled{opacity:.5}code,pre{overflow-wrap:anywhere;white-space:pre-wrap}.notice{border-left:4px solid #b78332;padding:12px;background:#fbf3df}.error{color:#812f2f}
+body{margin:0;background:#f4efe5;color:#17231f;font:16px/1.6 system-ui,sans-serif}.wrap{width:min(760px,calc(100% - 28px));margin:40px auto}.panel{background:#fffdf8;border:1px solid #d7cdbb;padding:24px}h1{font:42px/1.1 Georgia,serif}button,.phantom{border:0;background:#164b3a;color:#fff;padding:13px 18px;font-weight:800;cursor:pointer;display:inline-block;text-decoration:none}button:disabled{opacity:.5}code,pre{overflow-wrap:anywhere;white-space:pre-wrap}.notice{border-left:4px solid #b78332;padding:12px;background:#fbf3df}.error{color:#812f2f}.hidden{display:none}
 </style>
 </head>
 <body><main class="wrap"><section class="panel">
@@ -20,12 +20,16 @@ body{margin:0;background:#f4efe5;color:#17231f;font:16px/1.6 system-ui,sans-seri
 </ul>
 <p><a href="docs/SALE-TERMS.md" target="_blank" rel="noopener">Read the exact terms before signing</a></p>
 <button id="sign" disabled>Verify file, connect wallet and sign</button>
+<p><a id="openPhantom" class="phantom hidden" href="#">Open this page in Phantom</a></p>
 <p id="status" role="status">Verifying the terms file…</p><pre id="output"></pre>
 </section></main>
 <script>
 const expectedHash='e9173a67b80d36be52330297efcc185d01d0496b077573a96b26e039d7e4318f';
 const receivingWallet='GFV3jVRYQUL17bvY7KYRoGST6gPrVsxfBLMumGdUkaKU';
 const status=document.getElementById('status'),output=document.getElementById('output'),button=document.getElementById('sign');
+const phantomLink=document.getElementById('openPhantom'),pageUrl=location.origin+location.pathname;
+phantomLink.href='https://phantom.com/ul/browse/'+encodeURIComponent(pageUrl)+'?ref='+encodeURIComponent(location.origin);
+if(!window.solana)phantomLink.classList.remove('hidden');
 document.getElementById('hash').textContent=expectedHash;document.getElementById('wallet').textContent=receivingWallet;
 function hex(bytes){return[...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('')}
 function b64(bytes){let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s)}
