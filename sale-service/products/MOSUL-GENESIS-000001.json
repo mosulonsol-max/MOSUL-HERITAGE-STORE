@@ -9,6 +9,7 @@
   "payment_asset": "USDC",
   "payment_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   "network": "solana-mainnet-beta",
+  "merchant_wallet": "GFV3jVRYQUL17bvY7KYRoGST6gPrVsxfBLMumGdUkaKU",
   "terms_version": "owner-signature-required",
   "terms_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "activation_status": "blocked_until_owner_terms_are_signed_and_hashed"
