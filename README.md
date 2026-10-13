@@ -66,15 +66,15 @@ The `ai-engine/` directory contains an Ollama/Qwen planning layer, deterministic
 
 ## First-sale checkout candidate
 
-The repository now contains a fail-closed checkout candidate for the one-of-one
-`MOSUL-GENESIS-000001` at **149 USDC on Solana Mainnet**. It independently
-verifies the exact finalized token balance increase, rejects transaction replay,
-prevents duplicate sale of the 1/1 item, and gates the private package behind a
-short-lived buyer claim token. The service never receives a wallet seed phrase
-or spending key.
+The repository now contains a fail-closed timed ascending auction for the
+one-of-one `MOSUL-GENESIS-000001`. The final price is the highest eligible
+wallet-signed bid at the announced close; there is no fixed sale price. The
+winner receives a 24-hour exact-amount USDC payment request. The service
+verifies the finalized Mainnet transfer, rejects replay, prevents duplicate
+sale, and protects private delivery. Bid messages do not escrow funds.
 
 This is not yet an active offer. Activation requires the owner's signed seller
-terms and their SHA-256, an owner-verified receiving wallet, the private delivery
-ZIP, an HTTPS deployment, and independent security review. See
-[the checkout candidate](checkout.html), [deployment notes](sale-service/README.md),
-and [security boundary](sale-service/SECURITY.md).
+terms and their SHA-256, an owner-verified receiving wallet, auction dates and
+bid settings, the private delivery ZIP, an HTTPS deployment, and review of the
+payment method for the seller's location. See [the auction checkout](checkout.html),
+[deployment notes](sale-service/README.md), and [security boundary](sale-service/SECURITY.md).
