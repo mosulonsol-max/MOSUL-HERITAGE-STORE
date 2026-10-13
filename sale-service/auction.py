@@ -133,6 +133,9 @@ def auction_snapshot(db: sqlite3.Connection, cfg: AuctionConfig,
         "ORDER BY amount_raw DESC, created_at ASC, id ASC LIMIT 1",
         (cfg.auction_id,),
     ).fetchone()
+    open_leader = _leader(db, cfg) if state == "open" else None
+    next_minimum = (cfg.opening_bid_raw if not open_leader
+                    else open_leader["amount_raw"] + cfg.increment_raw)
     return {
         "auction_id": cfg.auction_id,
         "status": state,
@@ -140,6 +143,7 @@ def auction_snapshot(db: sqlite3.Connection, cfg: AuctionConfig,
         "ends_at": utc_iso(cfg.ends_at),
         "opening_bid_usdc": usdc_text(cfg.opening_bid_raw),
         "minimum_increment_usdc": usdc_text(cfg.increment_raw),
+        "next_minimum_bid_usdc": usdc_text(next_minimum) if state == "open" else None,
         "highest_bid_usdc": usdc_text(leader["amount_raw"]) if leader else None,
         "bid_count": db.execute(
             "SELECT COUNT(*) FROM auction_bids WHERE auction_id=? AND status IN ('valid','selected','paid')",
