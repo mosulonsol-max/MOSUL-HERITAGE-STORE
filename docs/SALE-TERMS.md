@@ -3,7 +3,7 @@
 **STATUS: DRAFT — AUCTION AND CHECKOUT MUST REMAIN DISABLED UNTIL SIGNED AND REVIEWED**
 
 The final signed terms must identify the legal seller, country/jurisdiction,
-support contact, exact product, opening bid, minimum increment, start/end time,
+business address, support contact, exact product, opening bid, minimum increment, start/end time,
 payment window, delivery window, refund policy, governing law, dispute contact,
 and permitted use. The exact SHA-256 of the signed version must replace the
 placeholder in product configuration and storefront metadata. The displayed
