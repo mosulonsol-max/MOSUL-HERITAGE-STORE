@@ -28,7 +28,7 @@ The service refuses to start until all of the following are supplied:
 - SALES_MERCHANT_WALLET: an owner-verified Solana wallet, never a mint address
 - SALE_AUCTION_ID, SALE_AUCTION_STARTS_AT, SALE_AUCTION_ENDS_AT
 - SALE_AUCTION_OPENING_BID_USDC and SALE_AUCTION_INCREMENT_USDC
-- SELLER_LEGAL_NAME, SELLER_COUNTRY, SELLER_SUPPORT_EMAIL
+- SELLER_LEGAL_NAME, SELLER_COUNTRY, SELLER_ADDRESS, SELLER_SUPPORT_EMAIL
 - DELIVERY_TOKEN_SECRET: at least 32 random characters
 - DELIVERY_PACKAGE_PATH: private ZIP containing the Collector Master,
   certificate, verification records, and signed buyer license
