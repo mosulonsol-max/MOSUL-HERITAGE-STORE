@@ -7,7 +7,7 @@
     {"name": "capability_audit", "status": "implemented", "notes": "Fail-closed registry and tests."},
     {"name": "draft_copy", "status": "implemented", "notes": "Drafts only; factual claims need sources."},
     {"name": "queue_social_post", "status": "partial", "notes": "Existing X/Telegram queues require channel secrets."},
-    {"name": "enable_checkout", "status": "partial", "notes": "Fail-closed Mainnet USDC checkout is implemented and tested; activation awaits signed seller terms, an owner-verified receiving wallet, private delivery package, deployment, and independent review."},
+    {"name": "enable_checkout", "status": "partial", "notes": "Fail-closed timed ascending USDC auction and winner checkout are implemented and tested; activation awaits signed terms, auction dates/bid settings, verified receiving wallet, private delivery package, deployment, local payment-method review, and independent security review."},
     {"name": "settle_auction", "status": "disabled", "notes": "Devnet testing only after manual approval."},
     {"name": "mint_nft", "status": "disabled", "notes": "No mainnet minting; provenance gates incomplete."}
   ]
