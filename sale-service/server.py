@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hmac
+import datetime as dt
 import json
 import mimetypes
 import os
@@ -13,7 +14,9 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core import (MainnetRpc, authorize_download, comparable_sales, confirm_order,
-                  connect, create_order, load_product)
+                  connect, create_order, load_product, validate_pubkey)
+from auction import (AuctionConfig, auction_snapshot, create_bid_challenge,
+                    init_auction, submit_bid, usdc_raw, usdc_text, winning_bid)
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("SALE_DB", "data/sales.sqlite3"))
@@ -25,11 +28,36 @@ DELIVERY_PACKAGE = Path(os.environ.get("DELIVERY_PACKAGE_PATH", ""))
 RPC_URL = os.environ.get("SOLANA_MAINNET_RPC", "https://api.mainnet-beta.solana.com")
 ALLOWED_ORIGIN = os.environ.get("SALE_ALLOWED_ORIGIN", "")
 ADMIN_TOKEN = os.environ.get("SALE_ADMIN_TOKEN", "")
+SELLER_LEGAL_NAME = os.environ.get("SELLER_LEGAL_NAME", "")
+SELLER_COUNTRY = os.environ.get("SELLER_COUNTRY", "")
+SELLER_SUPPORT_EMAIL = os.environ.get("SELLER_SUPPORT_EMAIL", "")
 PRODUCT = load_product(PRODUCT_PATH)
+
+
+def load_auction_config() -> AuctionConfig | None:
+    names = ("SALE_AUCTION_ID", "SALE_AUCTION_STARTS_AT", "SALE_AUCTION_ENDS_AT",
+             "SALE_AUCTION_OPENING_BID_USDC", "SALE_AUCTION_INCREMENT_USDC")
+    if not all(os.environ.get(name) for name in names):
+        return None
+    try:
+        starts = dt.datetime.fromisoformat(os.environ[names[1]].replace("Z", "+00:00"))
+        ends = dt.datetime.fromisoformat(os.environ[names[2]].replace("Z", "+00:00"))
+        return AuctionConfig(os.environ[names[0]], starts, ends,
+                             usdc_raw(os.environ[names[3]]), usdc_raw(os.environ[names[4]]))
+    except (ValueError, TypeError) as exc:
+        raise SystemExit(f"invalid auction configuration: {exc}") from None
+
+
+AUCTION = load_auction_config()
 
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "MosulSaleService/1.0"
+
+    def log_message(self, _format: str, *args) -> None:
+        # Requests may contain short-lived download tokens in their query string.
+        # The reverse proxy must also redact those query strings from access logs.
+        return
 
     def end_headers(self) -> None:
         self.send_header("Cache-Control", "no-store")
@@ -76,7 +104,13 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/health":
             return self._json(200, {"status": "ready", "network": "mainnet-beta",
-                                    "product_id": PRODUCT.id})
+                                    "product_id": PRODUCT.id,
+                                    "seller": {"name": SELLER_LEGAL_NAME,
+                                               "country": SELLER_COUNTRY,
+                                               "support_email": SELLER_SUPPORT_EMAIL}})
+        if parsed.path == "/auction" and AUCTION:
+            with connect(DB_PATH) as db:
+                return self._json(200, auction_snapshot(db, AUCTION, product_id=PRODUCT.id))
         if parsed.path == "/comparables" and self._admin():
             with connect(DB_PATH) as db:
                 return self._json(200, comparable_sales(db))
@@ -108,13 +142,42 @@ class Handler(BaseHTTPRequestHandler):
         try:
             body = self._body()
             with connect(DB_PATH) as db:
-                if self.path == "/orders":
+                if self.path == "/bids/challenge" and AUCTION:
+                    accepted = str(body["accepted_terms_sha256"])
+                    if not hmac.compare_digest(accepted, PRODUCT.terms_sha256):
+                        raise PermissionError("accept the current auction terms first")
+                    bidder = str(body["bidder_wallet"])
+                    if hmac.compare_digest(bidder, MERCHANT_WALLET):
+                        raise PermissionError("the seller cannot bid on this auction")
+                    result = create_bid_challenge(
+                        db, AUCTION, bidder, str(body["amount_usdc"]),
+                        accepted,
+                    )
+                elif self.path == "/bids" and AUCTION:
+                    result = submit_bid(db, AUCTION, str(body["challenge_id"]),
+                                        str(body["signature_base64"]))
+                elif self.path == "/orders" and AUCTION:
+                    accepted = str(body["accepted_terms_sha256"])
+                    if not hmac.compare_digest(accepted, PRODUCT.terms_sha256):
+                        raise PermissionError("accept the current auction terms first")
+                    winner = winning_bid(db, AUCTION, PRODUCT.id)
+                    if not winner:
+                        raise ValueError("auction ended without a valid bid")
+                    buyer_wallet = str(body.get("buyer_wallet", ""))
+                    if not hmac.compare_digest(buyer_wallet, winner["bidder_wallet"]):
+                        raise PermissionError("only the highest bidder can pay this order")
                     result = create_order(
                         db, product=PRODUCT, merchant_wallet=MERCHANT_WALLET,
                         idempotency_key=str(body["idempotency_key"]),
-                        buyer_wallet=body.get("buyer_wallet"),
-                        accepted_terms_sha256=str(body["accepted_terms_sha256"]),
+                        buyer_wallet=buyer_wallet, accepted_terms_sha256=accepted,
+                        ttl_minutes=1440, price_usdc=usdc_text(winner["amount_raw"]),
+                        auction_bid_id=winner["id"],
                     )
+                    with db:
+                        db.execute("UPDATE auction_bids SET status='selected' WHERE id=? AND status='valid'",
+                                   (winner["id"],))
+                elif self.path == "/orders" and not AUCTION:
+                    return self._json(503, {"error": "auction configuration is unavailable"})
                 elif self.path.startswith("/orders/") and self.path.endswith("/confirm"):
                     order_id = self.path.split("/")[2]
                     result = confirm_order(
@@ -141,13 +204,23 @@ def validate_startup() -> None:
         raise SystemExit("SELLER_TERMS_ACCEPTED=1 is required")
     if not MERCHANT_WALLET or len(DELIVERY_SECRET) < 32:
         raise SystemExit("SALES_MERCHANT_WALLET and a strong DELIVERY_TOKEN_SECRET are required")
+    try:
+        validate_pubkey(MERCHANT_WALLET)
+    except ValueError:
+        raise SystemExit("SALES_MERCHANT_WALLET must be a valid Solana public key") from None
     if not DELIVERY_PACKAGE.is_file():
         raise SystemExit("DELIVERY_PACKAGE_PATH must point to the private product ZIP")
     if PRODUCT.terms_sha256 == "0" * 64 or PRODUCT.terms_version == "owner-signature-required":
         raise SystemExit("replace the draft buyer terms with the signed version and its SHA-256")
     if not ALLOWED_ORIGIN.startswith("https://"):
         raise SystemExit("SALE_ALLOWED_ORIGIN must be the HTTPS storefront origin")
+    if not AUCTION:
+        raise SystemExit("complete the auction id, dates, opening bid, and increment")
+    if not SELLER_LEGAL_NAME or not SELLER_COUNTRY or not SELLER_SUPPORT_EMAIL:
+        raise SystemExit("seller name, country, and support email are required for buyer disclosure")
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with connect(DB_PATH) as db:
+        init_auction(db)
 
 
 def main() -> int:
