@@ -22,7 +22,6 @@ ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("SALE_DB", "data/sales.sqlite3"))
 PRODUCT_PATH = Path(os.environ.get(
     "SALE_PRODUCT", str(ROOT / "products" / "MOSUL-GENESIS-000001.json")))
-MERCHANT_WALLET = os.environ.get("SALES_MERCHANT_WALLET", "")
 DELIVERY_SECRET = os.environ.get("DELIVERY_TOKEN_SECRET", "")
 DELIVERY_PACKAGE = Path(os.environ.get("DELIVERY_PACKAGE_PATH", ""))
 RPC_URL = os.environ.get("SOLANA_MAINNET_RPC", "https://api.mainnet-beta.solana.com")
@@ -30,8 +29,10 @@ ALLOWED_ORIGIN = os.environ.get("SALE_ALLOWED_ORIGIN", "")
 ADMIN_TOKEN = os.environ.get("SALE_ADMIN_TOKEN", "")
 SELLER_LEGAL_NAME = os.environ.get("SELLER_LEGAL_NAME", "")
 SELLER_COUNTRY = os.environ.get("SELLER_COUNTRY", "")
+SELLER_ADDRESS = os.environ.get("SELLER_ADDRESS", "")
 SELLER_SUPPORT_EMAIL = os.environ.get("SELLER_SUPPORT_EMAIL", "")
 PRODUCT = load_product(PRODUCT_PATH)
+MERCHANT_WALLET = os.environ.get("SALES_MERCHANT_WALLET", PRODUCT.merchant_wallet)
 
 
 def load_auction_config() -> AuctionConfig | None:
@@ -107,6 +108,7 @@ class Handler(BaseHTTPRequestHandler):
                                     "product_id": PRODUCT.id,
                                     "seller": {"name": SELLER_LEGAL_NAME,
                                                "country": SELLER_COUNTRY,
+                                               "address": SELLER_ADDRESS,
                                                "support_email": SELLER_SUPPORT_EMAIL}})
         if parsed.path == "/auction" and AUCTION:
             with connect(DB_PATH) as db:
@@ -216,8 +218,8 @@ def validate_startup() -> None:
         raise SystemExit("SALE_ALLOWED_ORIGIN must be the HTTPS storefront origin")
     if not AUCTION:
         raise SystemExit("complete the auction id, dates, opening bid, and increment")
-    if not SELLER_LEGAL_NAME or not SELLER_COUNTRY or not SELLER_SUPPORT_EMAIL:
-        raise SystemExit("seller name, country, and support email are required for buyer disclosure")
+    if not SELLER_LEGAL_NAME or not SELLER_COUNTRY or not SELLER_ADDRESS or not SELLER_SUPPORT_EMAIL:
+        raise SystemExit("seller name, country, address, and support email are required for buyer disclosure")
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with connect(DB_PATH) as db:
         init_auction(db)
