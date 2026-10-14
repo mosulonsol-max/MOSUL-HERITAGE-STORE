@@ -35,6 +35,7 @@ SELLER_ADDRESS = os.environ.get("SELLER_ADDRESS", "")
 SELLER_SUPPORT_EMAIL = os.environ.get("SELLER_SUPPORT_EMAIL", "")
 SELLER_TERMS_SIGNED_AT = os.environ.get("SELLER_TERMS_SIGNED_AT", "")
 SELLER_TERMS_SIGNATURE_B64 = os.environ.get("SELLER_TERMS_SIGNATURE_B64", "")
+SALES_ENABLED = os.environ.get("SALES_ENABLED", "0") == "1"
 PRODUCT = load_product(PRODUCT_PATH)
 MERCHANT_WALLET = os.environ.get("SALES_MERCHANT_WALLET", PRODUCT.merchant_wallet)
 
@@ -113,13 +114,18 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path == "/health":
-            return self._json(200, {"status": "ready", "network": "mainnet-beta",
+            return self._json(200, {"status": "ready" if SALES_ENABLED else "sales_disabled",
+                                    "sales_enabled": SALES_ENABLED,
+                                    "network": "mainnet-beta",
                                     "product_id": PRODUCT.id,
-                                    "seller": {"trade_name": SELLER_TRADE_NAME,
+                                    "seller": ({"trade_name": SELLER_TRADE_NAME,
                                                "name": SELLER_LEGAL_NAME,
                                                "country": SELLER_COUNTRY,
                                                "address": SELLER_ADDRESS,
-                                               "support_email": SELLER_SUPPORT_EMAIL}})
+                                               "support_email": SELLER_SUPPORT_EMAIL}
+                                               if SALES_ENABLED else None)})
+        if not SALES_ENABLED:
+            return self._json(503, {"error": "sales are not enabled"})
         if parsed.path == "/auction" and AUCTION:
             with connect(DB_PATH) as db:
                 return self._json(200, auction_snapshot(db, AUCTION, product_id=PRODUCT.id))
@@ -149,6 +155,8 @@ class Handler(BaseHTTPRequestHandler):
         self._json(404, {"error": "not found"})
 
     def do_POST(self) -> None:
+        if not SALES_ENABLED:
+            return self._json(503, {"error": "sales are not enabled"})
         if not self._same_origin():
             return self._json(403, {"error": "origin not allowed"})
         try:
@@ -210,8 +218,16 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def validate_startup() -> None:
-    if os.environ.get("SALES_ENABLED") != "1":
-        raise SystemExit("SALES_ENABLED=1 is required")
+    enabled = os.environ.get("SALES_ENABLED", "0")
+    if enabled not in {"0", "1"}:
+        raise SystemExit("SALES_ENABLED must be exactly 0 or 1")
+    if enabled == "0":
+        # Allow a health-checked, fail-closed deployment before the owner has
+        # installed the private delivery ZIP and completed auction settings.
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with connect(DB_PATH) as db:
+            init_auction(db)
+        return
     if not MERCHANT_WALLET or len(DELIVERY_SECRET) < 32:
         raise SystemExit("SALES_MERCHANT_WALLET and a strong DELIVERY_TOKEN_SECRET are required")
     try:

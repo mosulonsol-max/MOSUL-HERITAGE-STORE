@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: mosul-heritage-sale-api
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    dockerfilePath: ./sale-service/Dockerfile
+    dockerContext: ./sale-service
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    disk:
+      name: sale-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: SALE_BIND
+        value: 0.0.0.0
+      # Keep activation under source control. A dashboard-only override can be
+      # overwritten by a later Blueprint sync.
+      - key: SALES_ENABLED
+        value: "0"
+      - key: SALE_DB
+        value: /app/data/sales.sqlite3
+      - key: DELIVERY_PACKAGE_PATH
+        value: /app/data/private/MOSUL-GENESIS-000001.zip
+      - key: DELIVERY_TOKEN_SECRET
+        generateValue: true
+      - key: SALE_ADMIN_TOKEN
+        generateValue: true
+      - key: SALES_MERCHANT_WALLET
+        value: EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu
+      - key: SELLER_LEGAL_NAME
+        value: Ahmed Nabeel
+      - key: SELLER_TRADE_NAME
+        value: MOSUL HERITAGE STORE
+      - key: SELLER_COUNTRY
+        value: Iraq
+      - key: SELLER_SUPPORT_EMAIL
+        value: mosulonsol@gmail.com
+      - key: SALE_ALLOWED_ORIGIN
+        value: https://mosulonsol-max.github.io

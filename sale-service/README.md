@@ -20,9 +20,24 @@ price. A winner has 24 hours to pay. If the
 payment window expires, that bidder is marked as defaulted and the next highest
 valid bidder may create an order. A bid is an offer, not proof of payment.
 
-## Owner activation gates
+## Deployment and owner activation gates
 
-The service refuses to start until all of the following are supplied:
+`render.yaml` provisions the Docker service in Frankfurt with a one-GB
+persistent disk and `/health` check. It starts with `SALES_ENABLED=0`: the
+service can be deployed and health-checked, but `/auction`, bids, orders and
+downloads return HTTP 503, and health output does not disclose seller details.
+This parked deployment does not accept bids or payments.
+
+Before enabling sales, upload the private delivery ZIP to the configured disk
+path, store the signed-terms values and any remaining settings in Render's
+environment-secret panel, choose a future auction window, and update the
+storefront's API URL. Keep `SALES_ENABLED=0` throughout setup. Activation is
+made only by a reviewed change to `render.yaml` setting it to `1`, followed by
+a Blueprint sync; a dashboard-only override may be overwritten by a later
+sync. Never put the ZIP, signature value, or generated secrets in GitHub.
+
+When `SALES_ENABLED=1`, the service refuses to start until all of the following
+are supplied:
 
 - SALES_ENABLED=1
 - SALES_MERCHANT_WALLET: an owner-verified Solana wallet, never a mint address
