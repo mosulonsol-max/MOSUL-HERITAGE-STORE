@@ -17,6 +17,8 @@ services:
         value: "8080"
       - key: SALE_BIND
         value: 0.0.0.0
+      # Keep activation under source control. A dashboard-only override can be
+      # overwritten by a later Blueprint sync.
       - key: SALES_ENABLED
         value: "0"
       - key: SALE_DB
