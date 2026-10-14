@@ -1,26 +1,12 @@
 # Automatic X updates
 
-The project publishes a short English update to **@MosulOnSol** when one new approved item is added to `social/updates.json` on `main`.
+The workflow publishes to **@MosulOnSol** after a project pull request is merged into `main`.
 
 ## What triggers a post
 
-The workflow watches only `social/updates.json`. It posts only when a commit adds exactly one new item whose `status` is `approved`. Code changes and commit messages never post by themselves. The workflow publishes the exact text in the file; it does not generate or embellish claims.
+If the merged change adds exactly one new `approved` item to `social/updates.json`, the workflow publishes that exact, fact-checked text. Otherwise, if the merge changes project files, it publishes a concise status based on the merged pull-request title and links directly to that pull request. Queue-only changes without an approved item do not post. The workflow does not publish raw commit messages or changes from unmerged pull requests.
 
-Example entry (replace the ID and text with a fact-checked post):
-
-```json
-{
-  "updates": [
-    {
-      "id": "2026-10-12-site-update",
-      "status": "approved",
-      "text": "MOSUL HERITAGE update: ... https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/ #MOSUL"
-    }
-  ]
-}
-```
-
-Use a unique ID for each post. Updates must be ASCII English and fit X's 280 weighted-character limit; URLs count as 23 characters. Keep statements about token association, payments, NFTs, sales, and launch status consistent with the verification documents.
+The merged pull request is the public approval point for its title and changes. Keep the title factual, concise, and free of secrets or private customer information. Posts use English and fit X's 280 weighted-character limit.
 
 ## Connect the X account
 
@@ -33,6 +19,6 @@ Create an X Developer App authorized for **OAuth 1.0a User Context** with read-a
 
 Generate the user access token and secret while signed in as the project account. Never put credentials in a commit, issue, pull request, or chat. The workflow has read-only repository permission and passes X credentials only to the publishing step.
 
-Until all four secrets are set, nothing can be published. X may require an eligible developer account or API access plan. The workflow does not automatically retry a failed or ambiguous post, to prevent accidental duplicates; check the account before trying again.
+A merged change triggers one attempt. The workflow does not automatically retry failed or ambiguous requests, to prevent duplicate posts. An HTTP error means no successful publication was confirmed; inspect the X account before a manual retry. X may require eligible developer access and available API credits.
 
 X docs: [Create Posts](https://docs.x.com/x-api/posts/create-posts) · [Authentication overview](https://docs.x.com/fundamentals/authentication/overview)
