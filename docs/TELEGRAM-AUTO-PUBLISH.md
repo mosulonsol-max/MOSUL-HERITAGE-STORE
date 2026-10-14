@@ -1,6 +1,6 @@
 # Automatic Telegram updates
 
-The Telegram workflow publishes the exact text of one newly added `approved` entry in `social/updates.json` to the configured group. It runs only when that file changes on `main`; it does not generate claims from commits or retry ambiguous sends.
+The Telegram workflow sends an exact, newly approved item from `social/updates.json` to the configured group. For other project changes, it sends a concise status based on the merged pull request title and links to that pull request.
 
 ## Set up the group bot
 
@@ -14,10 +14,12 @@ Never put the bot token in a commit, issue, pull request, screenshot, or chat me
 
 ## Publishing behavior
 
-- Add exactly one new update with `status: approved` to `social/updates.json` on `main`.
-- The Telegram publisher and X publisher are separate workflows. Each sends the approved text only to its own configured destination.
-- An empty queue or a commit without a newly approved item sends nothing.
-- The current queue is empty. Do not add a dummy item just to test against the public group.
+- Queue updates publish on `main` only when one newly added item is marked `approved`.
+- A merged project PR without a new approved queue item publishes its factual PR title and a direct link.
+- Unmerged PRs and queue-only edits without an approved item do not publish.
+- Telegram queue posts are sent once by the push workflow; merged-PR handling skips the same approved item to prevent duplicates.
+- The Telegram publisher and X publisher are separate workflows. Each sends only to its configured destination.
+- A failed or ambiguous request is not retried automatically.
 
 ## Questions from group members
 
