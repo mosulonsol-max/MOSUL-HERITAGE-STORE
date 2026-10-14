@@ -31,8 +31,10 @@ This parked deployment does not accept bids or payments.
 Before enabling sales, upload the private delivery ZIP to the configured disk
 path, store the signed-terms values and any remaining settings in Render's
 environment-secret panel, choose a future auction window, and update the
-storefront's API URL. Then set `SALES_ENABLED=1` and redeploy. Never put the ZIP,
-signature value, or generated secrets in GitHub.
+storefront's API URL. Keep `SALES_ENABLED=0` throughout setup. Activation is
+made only by a reviewed change to `render.yaml` setting it to `1`, followed by
+a Blueprint sync; a dashboard-only override may be overwritten by a later
+sync. Never put the ZIP, signature value, or generated secrets in GitHub.
 
 When `SALES_ENABLED=1`, the service refuses to start until all of the following
 are supplied:
