@@ -49,6 +49,11 @@
       "id": "manual-2026-10-14-start-publishing",
       "status": "approved",
       "text": "MOSUL HERITAGE completed a verifiable seller-terms signature with a Solana wallet. The signed record links the seller, receiving wallet, product ID, terms version and SHA-256 hash for stronger provenance. https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/ #MOSUL #Solana"
+    },
+    {
+      "id": "daily-2026-10-15-morning",
+      "status": "approved",
+      "text": "MOSUL HERITAGE now has a tested governance engine, deterministic policy gates, and support for optional Ed25519 provenance. Automated tests cover generation, publishing, and Devnet payment flows. https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/ #MOSUL #BuildInPublic"
     }
   ]
 }
