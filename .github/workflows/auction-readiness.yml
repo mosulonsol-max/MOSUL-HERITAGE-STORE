@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install service dependencies
-        run: python -m pip install --disable-pip-version-check -r sale-service/requirements.txt
+        run: python -m pip install --disable-pip-version-check -r requirements.txt -r sale-service/requirements.txt
       - name: Run auction and readiness tests
         env:
           PYTHONPATH: .:sale-service
