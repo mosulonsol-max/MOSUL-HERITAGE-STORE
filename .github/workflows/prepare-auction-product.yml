@@ -26,7 +26,7 @@ jobs:
             git -C artifacts switch -C auction-data FETCH_HEAD
           else
             git -C artifacts switch --orphan auction-data
-            git -C artifacts rm -rf .
+            git -C artifacts rm -rf . || true
           fi
       - name: Install pinned free CPU generator
         run: |
