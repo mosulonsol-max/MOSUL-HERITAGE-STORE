@@ -25,7 +25,8 @@ class ReadinessTests(unittest.TestCase):
         self.valid_assets = {
             "product_id": "LOT-1", "terms_version": "v1", "terms_sha256": terms_hash,
             "source_provenance": {
-                "page_url": "https://www.loc.gov/item/1/", "catalog_id": "1",
+                "page_url": "https://www.loc.gov/item/1/",
+                "resource_url": "https://tile.loc.gov/reference.jpg", "catalog_id": "1",
                 "rights_review": "no_known_restrictions", "creator": "Archive",
             },
             "public_preview": {"url": "https://example.test/preview.png", "sha256": "b" * 64,

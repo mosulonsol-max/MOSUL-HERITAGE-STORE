@@ -14,8 +14,17 @@ SPEC = importlib.util.spec_from_file_location("generate_artwork", MODULE_PATH)
 ARTWORK = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ARTWORK)
 
+CPU_MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "generate_cpu.py"
+CPU_SPEC = importlib.util.spec_from_file_location("generate_cpu", CPU_MODULE_PATH)
+CPU = importlib.util.module_from_spec(CPU_SPEC)
+CPU_SPEC.loader.exec_module(CPU)
+
 
 class BackendTests(unittest.TestCase):
+    def test_cpu_reference_rejects_unapproved_hosts_before_network_access(self):
+        with self.assertRaisesRegex(ValueError, "Library of Congress"):
+            CPU.download_reference("https://example.com/untrusted.jpg")
+
     def test_cpu_backend_invokes_bounded_generator(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder) / "out.png"

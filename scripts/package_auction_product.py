@@ -55,6 +55,14 @@ def build(*, master_path: Path, preview_path: Path, product_path: Path,
     assets = json.loads(assets_path.read_text(encoding="utf-8"))
     if product["id"] != assets["product_id"]:
         raise ValueError("product and asset manifest IDs differ")
+    expected_reference = assets.get("source_provenance", {}).get("resource_url")
+    if expected_reference and (
+        not generation
+        or generation.get("reference_url") != expected_reference
+        or not generation.get("reference_sha256")
+        or generation.get("reference_mode") != "image-to-image"
+    ):
+        raise ValueError("auction product must be image-to-image generated from the approved archival resource")
     master = master_path.read_bytes()
     preview = preview_path.read_bytes()
     with Image.open(io.BytesIO(master)) as image:
