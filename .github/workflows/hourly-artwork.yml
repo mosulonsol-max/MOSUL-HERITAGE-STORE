@@ -13,6 +13,7 @@ concurrency:
 jobs:
   artwork:
     if: github.ref == 'refs/heads/main'
+    timeout-minutes: 55
     runs-on: ${{ vars.ARTWORK_BACKEND == 'flux-local' && fromJSON('["self-hosted","linux","x64","gpu"]') || 'ubuntu-latest' }}
     outputs:
       ready: ${{ steps.generate.outputs.ready }}
@@ -37,23 +38,34 @@ jobs:
           if [ ! -f data/catalog.json ]; then echo '{"items":[]}' > data/catalog.json; fi
       - name: Install engine and selected generator dependencies
         env:
-          ARTWORK_BACKEND: ${{ vars.ARTWORK_BACKEND }}
+          ARTWORK_BACKEND: ${{ vars.ARTWORK_BACKEND || 'cpu-free' }}
         run: |
           python -m pip install --disable-pip-version-check -r source/requirements.txt
           if [ "$ARTWORK_BACKEND" = "flux-local" ]; then
             python -m pip install --disable-pip-version-check -r source/requirements-gpu.txt
+          elif [ "$ARTWORK_BACKEND" = "cpu-free" ]; then
+            python -m pip install --disable-pip-version-check torch --index-url https://download.pytorch.org/whl/cpu
+            python -m pip install --disable-pip-version-check -r source/requirements-cpu.txt
           fi
+      - name: Cache pinned model weights
+        if: ${{ (vars.ARTWORK_BACKEND || 'cpu-free') == 'cpu-free' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface/hub
+          key: mosul-small-sd-728f8b598d7d305bd30c20cbdfbaa6ffa7eec9cc
       - name: Test AI policy before execution
         env:
           PYTHONPATH: source/ai-engine
-        run: python -m unittest discover -s source/ai-engine/tests -v
+        run: |
+          python -m unittest discover -s source/ai-engine/tests -v
+          python -m unittest discover -s source/tests -v
       - name: Plan and generate one governed preview
         id: generate
         env:
           AI_PLANNER_ENABLED: ${{ vars.AI_PLANNER_ENABLED }}
           OLLAMA_BASE_URL: ${{ vars.OLLAMA_BASE_URL }}
           OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL }}
-          ARTWORK_BACKEND: ${{ vars.ARTWORK_BACKEND }}
+          ARTWORK_BACKEND: ${{ vars.ARTWORK_BACKEND || 'cpu-free' }}
           ARTWORK_API_URL: ${{ secrets.ARTWORK_API_URL }}
           ARTWORK_API_KEY: ${{ secrets.ARTWORK_API_KEY }}
           ARTWORK_MODEL: ${{ vars.ARTWORK_MODEL }}
