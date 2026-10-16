@@ -10,10 +10,18 @@ from mosul_ai.provenance import sign_record
 
 def safe_extract(bundle: Path, dest: Path) -> None:
     with zipfile.ZipFile(bundle) as zf:
-        names = zf.namelist()
-        if len(names) > 12:
+        infos = zf.infolist()
+        if len(infos) > 12:
             raise ValueError("Bundle has an unexpected number of files")
-        for name in names:
+        if sum(info.file_size for info in infos) > 32_000_000:
+            raise ValueError("Bundle exceeds the 32 MB expanded-size limit")
+        names = [info.filename for info in infos]
+        if len(names) != len(set(names)):
+            raise ValueError("Bundle contains duplicate paths")
+        for info in infos:
+            name = info.filename
+            if info.flag_bits & 0x1:
+                raise ValueError("Encrypted ZIP members are not accepted")
             p = PurePosixPath(name)
             if p.is_absolute() or ".." in p.parts or not name or "\\" in name:
                 raise ValueError("Unsafe path in bundle")
