@@ -10,29 +10,30 @@
     "creator": "American Colony (Jerusalem). Photo Department / Matson Photo Service",
     "created": "1932",
     "page_url": "https://www.loc.gov/pictures/item/2019706978/",
+    "resource_url": "https://tile.loc.gov/storage-services/service/pnp/matpc/16200/16200v.jpg",
     "rights_review": "no_known_restrictions",
     "rights_note": "Final production must retain the Library of Congress rights/advisory record in the certificate."
   },
   "public_preview": {
     "url": "https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/auction-product/MOSUL-GENESIS-000001-preview.png",
-    "sha256": "affea8734a17a48a383b8440eb19b525e0923af9da52f208a668c4cdfaef677e",
+    "sha256": "62aeeb16eabafc4e999a418d1132dc138ffcedb20b8316bf70377a1269f075ce",
     "watermarked": true
   },
   "collector_master": {
-    "sha256": "c2fb914ed791dcd9dfe45e924b333171e5f35d95bf2db84e644fe0915c1d9438",
+    "sha256": "d85feaa0c09530dc6f6b98830d237f8546594396482c241d461562f756a823ad",
     "width": 512,
     "height": 512,
     "publicly_accessible": false
   },
   "delivery_package": {
-    "sha256": "2248928f3d3de56c542c6cd2d1fc6d125b39b3d11a28b44957b10c9ef5a0bfa7",
+    "sha256": "9f801baa5856284739c346395a6abff8ba3cf725f4968d9edc3893a31db6b658",
     "contents": [
       "Collector Master",
       "certificate.json",
       "SHA256SUMS",
       "LICENSE.txt"
     ],
-    "encrypted_artifact_sha256": "9e6b27f81bfbe4474bc03588e9d25674b8cc15e9ea5deee08c661084f349eeba",
+    "encrypted_artifact_sha256": "4738f60b287410ee29a3866e9e6d2e4c222528f7edadf86bf71177cebd1a7249",
     "encryption": "AES-256-GCM; key derived with HKDF-SHA256 from the artwork signing seed"
   }
 }

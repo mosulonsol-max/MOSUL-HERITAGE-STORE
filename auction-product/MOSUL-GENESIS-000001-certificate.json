@@ -4,8 +4,8 @@
   "title": "Mosul 1932 — Al-Hadba Over the Old City",
   "edition": "1/1",
   "classification": "AI-generated interpretive artwork informed by the cited archival record; not a historical photograph.",
-  "collector_master_sha256": "c2fb914ed791dcd9dfe45e924b333171e5f35d95bf2db84e644fe0915c1d9438",
-  "public_preview_sha256": "affea8734a17a48a383b8440eb19b525e0923af9da52f208a668c4cdfaef677e",
+  "collector_master_sha256": "d85feaa0c09530dc6f6b98830d237f8546594396482c241d461562f756a823ad",
+  "public_preview_sha256": "62aeeb16eabafc4e999a418d1132dc138ffcedb20b8316bf70377a1269f075ce",
   "source_provenance": {
     "catalogue": "Library of Congress",
     "catalog_id": "2019706978",
@@ -13,6 +13,7 @@
     "creator": "American Colony (Jerusalem). Photo Department / Matson Photo Service",
     "created": "1932",
     "page_url": "https://www.loc.gov/pictures/item/2019706978/",
+    "resource_url": "https://tile.loc.gov/storage-services/service/pnp/matpc/16200/16200v.jpg",
     "rights_review": "no_known_restrictions",
     "rights_note": "Final production must retain the Library of Congress rights/advisory record in the certificate."
   },
@@ -21,6 +22,10 @@
     "model": "segmind/small-sd",
     "model_license": "CreativeML Open RAIL-M",
     "model_revision": "728f8b598d7d305bd30c20cbdfbaa6ffa7eec9cc",
+    "reference_mode": "image-to-image",
+    "reference_sha256": "921f11ecd37f482a345d700d41689ada7338716dc6fc78289ad1c7671c8ede3d",
+    "reference_strength": 0.58,
+    "reference_url": "https://tile.loc.gov/storage-services/service/pnp/matpc/16200/16200v.jpg",
     "seed": 1932000001
   },
   "terms_version": "2026-10-13-v2",
@@ -28,7 +33,7 @@
   "provenance_signature": {
     "algorithm": "Ed25519",
     "public_key_b64": "HJvRYpI9wDUVqqPSTpoPx8WvdYq30Ceye2IFNyjfCTU=",
-    "signature_b64": "BRtNU28I+ZOgtVozQ7fWTuHFCUevL2Ft6Bxodss2dHocM7yYAvey0cndQWT5FMitGFXLEd1fV1NfxYo7tToXDQ==",
+    "signature_b64": "foBi2wNMtECej/cqRSdI/O0xyAQIUbM/0hx5q3wQ/DuZosAUDugnGFfZS1kRwz0nJ7Kyz7E7UBKQgrTvPXxMBQ==",
     "scope": "Canonical JSON record excluding provenance_signature"
   }
 }
