@@ -67,6 +67,7 @@ def evaluate_readiness(*, product_path: str | Path, asset_manifest_path: str | P
     )
     source_gate = (
         _https(source.get("page_url"))
+        and _https(source.get("resource_url"))
         and bool(source.get("catalog_id"))
         and source.get("rights_review") in {"public_domain", "no_known_restrictions"}
         and bool(source.get("creator"))
@@ -101,7 +102,7 @@ def evaluate_readiness(*, product_path: str | Path, asset_manifest_path: str | P
         _gate("auction_product", product_gate,
               "1/1 timed ascending auction with disclosed opening bid and increment"),
         _gate("source_provenance", source_gate,
-              "official HTTPS catalogue record and reusable-rights review"),
+              "official HTTPS catalogue/resource records and reusable-rights review"),
         _gate("public_preview", preview_gate,
               "watermarked HTTPS preview with a pinned SHA-256"),
         _gate("collector_master", master_gate,

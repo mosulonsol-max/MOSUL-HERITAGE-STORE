@@ -38,7 +38,8 @@ jobs:
           ARTWORK_SEED: "1932000001"
         run: |
           python source/scripts/generate_cpu.py \
-            --prompt "Create an original museum-quality interpretive digital artwork informed by the cited 1932 Library of Congress catalogue record of Mosul, with the Al-Hadba minaret rising over the old city. Warm limestone, brick geometry, atmospheric archival palette, respectful contemporary reconstruction. This is not a historical photograph. No words, letters, logos, signatures or watermarks. Square composition." \
+            --prompt "Create an original museum-quality interpretive digital artwork guided by this exact 1932 Library of Congress image of Mosul. Preserve the visibly leaning Al-Hadba minaret, its central position, and the old-city massing while transforming texture and atmosphere into refined contemporary art. Warm limestone and archival palette. This is not a historical photograph. No words, letters, logos, signatures or watermarks." \
+            --reference-url https://tile.loc.gov/storage-services/service/pnp/matpc/16200/16200v.jpg \
             --output master.png | tee generation.json
       - name: Validate and watermark the public preview
         env:
