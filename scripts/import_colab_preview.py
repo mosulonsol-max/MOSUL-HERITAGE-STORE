@@ -92,7 +92,7 @@ def main() -> int:
         except (FileNotFoundError, json.JSONDecodeError):
             old_items = []
         old_items = [item for item in old_items if item.get("id") != record["id"]]
-        catalog_path.write_text(json.dumps({"items": [record] + old_items[:119]}, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+        catalog_path.write_text(json.dumps({"items": [record] + old_items[:119]}, ensure_ascii=False, indent=2) + chr(10), encoding="utf-8")
         audit_src = tmp / "ai-audit.jsonl"
         if audit_src.is_file():
             with (data / "ai-audit.jsonl").open("a", encoding="utf-8") as dst:
