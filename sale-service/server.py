@@ -18,11 +18,15 @@ from core import (MainnetRpc, authorize_download, comparable_sales, confirm_orde
                   verify_seller_terms_signature)
 from auction import (AuctionConfig, auction_snapshot, create_bid_challenge,
                     init_auction, submit_bid, usdc_raw, usdc_text, winning_bid)
+from readiness import evaluate_readiness
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("SALE_DB", "data/sales.sqlite3"))
 PRODUCT_PATH = Path(os.environ.get(
     "SALE_PRODUCT", str(ROOT / "products" / "MOSUL-GENESIS-000001.json")))
+ASSET_MANIFEST_PATH = Path(os.environ.get(
+    "SALE_ASSET_MANIFEST",
+    str(ROOT / "products" / "MOSUL-GENESIS-000001.assets.json")))
 DELIVERY_SECRET = os.environ.get("DELIVERY_TOKEN_SECRET", "")
 DELIVERY_PACKAGE = Path(os.environ.get("DELIVERY_PACKAGE_PATH", ""))
 RPC_URL = os.environ.get("SOLANA_MAINNET_RPC", "https://api.mainnet-beta.solana.com")
@@ -60,6 +64,33 @@ def load_auction_config() -> AuctionConfig | None:
 
 
 AUCTION = load_auction_config()
+
+
+def seller_signature_valid() -> bool:
+    try:
+        verify_seller_terms_signature(
+            legal_name=SELLER_LEGAL_NAME, trade_name=SELLER_TRADE_NAME,
+            wallet=MERCHANT_WALLET, product=PRODUCT,
+            signed_at=SELLER_TERMS_SIGNED_AT,
+            signature_b64=SELLER_TERMS_SIGNATURE_B64,
+        )
+        return True
+    except (ValueError, PermissionError):
+        return False
+
+
+def readiness_snapshot() -> dict:
+    return evaluate_readiness(
+        product_path=PRODUCT_PATH,
+        asset_manifest_path=ASSET_MANIFEST_PATH,
+        delivery_package_path=DELIVERY_PACKAGE,
+        seller_signature_valid=seller_signature_valid(),
+        auction_configured=AUCTION is not None,
+        seller_disclosure_complete=all((
+            SELLER_LEGAL_NAME, SELLER_TRADE_NAME, SELLER_COUNTRY,
+            SELLER_ADDRESS, SELLER_SUPPORT_EMAIL,
+        )),
+    )
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -124,6 +155,8 @@ class Handler(BaseHTTPRequestHandler):
                                                "address": SELLER_ADDRESS,
                                                "support_email": SELLER_SUPPORT_EMAIL}
                                                if SALES_ENABLED else None)})
+        if parsed.path == "/readiness":
+            return self._json(200, readiness_snapshot())
         if not SALES_ENABLED:
             return self._json(503, {"error": "sales are not enabled"})
         if parsed.path == "/auction" and AUCTION:
@@ -247,6 +280,9 @@ def validate_startup() -> None:
         )
     except (ValueError, PermissionError) as exc:
         raise SystemExit(f"valid seller wallet signature over the exact terms is required: {exc}") from None
+    readiness = readiness_snapshot()
+    if not readiness["auction_ready"]:
+        raise SystemExit("auction readiness gates failed: " + ", ".join(readiness["blockers"]))
     if not ALLOWED_ORIGIN.startswith("https://"):
         raise SystemExit("SALE_ALLOWED_ORIGIN must be the HTTPS storefront origin")
     if not AUCTION:

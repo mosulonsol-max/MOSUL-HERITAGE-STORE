@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "product_id": "MOSUL-GENESIS-000001",
+  "terms_version": "2026-10-13-v2",
+  "terms_sha256": "83e02c0b442d25c5217f459979390759d562c0265cc5bbc7b7b7c7af7380fe9c",
+  "source_provenance": {
+    "catalogue": "Library of Congress",
+    "catalog_id": "2019706978",
+    "title": "Iraq. Mosul. General view with tall minaret in center of picture",
+    "creator": "American Colony (Jerusalem). Photo Department / Matson Photo Service",
+    "created": "1932",
+    "page_url": "https://www.loc.gov/pictures/item/2019706978/",
+    "rights_review": "no_known_restrictions",
+    "rights_note": "Final production must retain the Library of Congress rights/advisory record in the certificate."
+  },
+  "public_preview": {
+    "url": "",
+    "sha256": "",
+    "watermarked": true
+  },
+  "collector_master": {
+    "sha256": "",
+    "width": 0,
+    "height": 0,
+    "publicly_accessible": false
+  },
+  "delivery_package": {
+    "sha256": "",
+    "contents": ["Collector Master", "certificate.json", "SHA256SUMS", "LICENSE.txt"]
+  }
+}

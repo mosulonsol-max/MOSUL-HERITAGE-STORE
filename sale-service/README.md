@@ -40,6 +40,8 @@ When `SALES_ENABLED=1`, the service refuses to start until all of the following
 are supplied:
 
 - SALES_ENABLED=1
+- `/readiness` reports every product, provenance, private-package, seller-signature,
+  and auction-window gate as passed
 - SALES_MERCHANT_WALLET: an owner-verified Solana wallet, never a mint address
 - SALE_AUCTION_ID, SALE_AUCTION_STARTS_AT, SALE_AUCTION_ENDS_AT
 - optional SALE_AUCTION_OPENING_BID_USDC and SALE_AUCTION_INCREMENT_USDC may

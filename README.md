@@ -78,3 +78,17 @@ terms and their SHA-256, an owner-verified receiving wallet, auction dates and
 bid settings, the private delivery ZIP, an HTTPS deployment, and review of the
 payment method for the seller's location. See [the auction checkout](checkout.html),
 [deployment notes](sale-service/README.md), and [security boundary](sale-service/SECURITY.md).
+### Auction-product readiness
+
+The first 1/1 product now has a machine-readable asset manifest and fail-closed
+readiness evaluator. The public `/readiness` endpoint remains available while
+sales are parked, but bidding cannot open until the source record, watermarked
+preview, private Collector Master, exact delivery ZIP hash, seller signature,
+and auction window all pass. Payment activation remains a separate review.
+
+The `Prepare encrypted auction product` workflow creates the exact Genesis lot
+on the free CPU generator, signs its certificate, packages the private master,
+and persists only an AES-256-GCM encrypted package plus its public preview and
+hashes. The cited archival record is the Library of Congress Matson catalogue
+item `2019706978`; the artwork is labelled as an interpretive AI work, not as a
+historical photograph.

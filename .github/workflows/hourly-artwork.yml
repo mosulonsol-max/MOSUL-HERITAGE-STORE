@@ -9,6 +9,7 @@ on:
       - 'requirements*.txt'
       - 'scripts/build_catalog.py'
       - 'scripts/generate_*.py'
+      - 'sale-service/products/MOSUL-GENESIS-000001.assets.json'
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
@@ -97,6 +98,12 @@ jobs:
           cp data/catalog.json source/catalog.json
           mkdir -p source/generated
           cp -a data/generated/. source/generated/
+          if git -C source ls-remote --exit-code origin refs/heads/auction-data >/dev/null 2>&1; then
+            git -C source fetch origin auction-data
+            mkdir -p source/auction-product
+            git -C source show FETCH_HEAD:auction-product/MOSUL-GENESIS-000001-preview.png > source/auction-product/MOSUL-GENESIS-000001-preview.png
+            git -C source show FETCH_HEAD:auction-product/MOSUL-GENESIS-000001-certificate.json > source/auction-product/MOSUL-GENESIS-000001-certificate.json
+          fi
           python source/scripts/build_catalog.py source
       - name: Upload Pages artifact
         if: steps.generate.outputs.ready == 'true'

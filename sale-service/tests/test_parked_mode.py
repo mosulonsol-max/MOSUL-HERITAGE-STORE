@@ -17,7 +17,7 @@ class ParkedModeTests(unittest.TestCase):
                 server.validate_startup()
             self.assertTrue(os.path.isfile(db_path))
 
-    def test_parked_service_has_health_only_and_rejects_writes(self):
+    def test_parked_service_exposes_health_and_readiness_but_rejects_sales(self):
         with patch.object(server, "SALES_ENABLED", False):
             def request(path, method="GET"):
                 handler = object.__new__(server.Handler)
@@ -39,6 +39,16 @@ class ParkedModeTests(unittest.TestCase):
             self.assertEqual(health["status"], "sales_disabled")
             self.assertFalse(health["sales_enabled"])
             self.assertIsNone(health["seller"])
+
+            with patch.object(server, "readiness_snapshot", return_value={
+                "auction_ready": False, "payment_enabled": False,
+                "blockers": ["delivery_package"],
+            }):
+                status, readiness = request("/readiness")
+            self.assertEqual(status, 200)
+            self.assertFalse(readiness["auction_ready"])
+            self.assertFalse(readiness["payment_enabled"])
+            self.assertEqual(readiness["blockers"], ["delivery_package"])
 
             status, _ = request("/auction")
             self.assertEqual(status, 503)
