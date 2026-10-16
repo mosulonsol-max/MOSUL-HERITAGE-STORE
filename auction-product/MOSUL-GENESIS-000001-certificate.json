@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "product_id": "MOSUL-GENESIS-000001",
+  "title": "Mosul 1932 — Al-Hadba Over the Old City",
+  "edition": "1/1",
+  "classification": "AI-generated interpretive artwork informed by the cited archival record; not a historical photograph.",
+  "collector_master_sha256": "c2fb914ed791dcd9dfe45e924b333171e5f35d95bf2db84e644fe0915c1d9438",
+  "public_preview_sha256": "affea8734a17a48a383b8440eb19b525e0923af9da52f208a668c4cdfaef677e",
+  "source_provenance": {
+    "catalogue": "Library of Congress",
+    "catalog_id": "2019706978",
+    "title": "Iraq. Mosul. General view with tall minaret in center of picture",
+    "creator": "American Colony (Jerusalem). Photo Department / Matson Photo Service",
+    "created": "1932",
+    "page_url": "https://www.loc.gov/pictures/item/2019706978/",
+    "rights_review": "no_known_restrictions",
+    "rights_note": "Final production must retain the Library of Congress rights/advisory record in the certificate."
+  },
+  "generation": {
+    "compute": "github-hosted-cpu",
+    "model": "segmind/small-sd",
+    "model_license": "CreativeML Open RAIL-M",
+    "model_revision": "728f8b598d7d305bd30c20cbdfbaa6ffa7eec9cc",
+    "seed": 1932000001
+  },
+  "terms_version": "2026-10-13-v2",
+  "terms_sha256": "83e02c0b442d25c5217f459979390759d562c0265cc5bbc7b7b7c7af7380fe9c",
+  "provenance_signature": {
+    "algorithm": "Ed25519",
+    "public_key_b64": "HJvRYpI9wDUVqqPSTpoPx8WvdYq30Ceye2IFNyjfCTU=",
+    "signature_b64": "BRtNU28I+ZOgtVozQ7fWTuHFCUevL2Ft6Bxodss2dHocM7yYAvey0cndQWT5FMitGFXLEd1fV1NfxYo7tToXDQ==",
+    "scope": "Canonical JSON record excluding provenance_signature"
+  }
+}
