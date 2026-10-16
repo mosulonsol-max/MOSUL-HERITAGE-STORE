@@ -2,11 +2,12 @@
 
 ## What it does
 
-A GitHub Actions workflow runs once an hour and can be started manually from main. It supports either an explicitly configured OpenAI-compatible API or local generation through FLUX.1-schnell on a self-hosted GPU runner. It validates the result, adds a visible MOSUL HERITAGE · PREVIEW · NOT FOR SALE watermark, and publishes its hash and AI-art classification in the preview catalog. Unmarked masters are not committed publicly. The rolling catalog and watermarked previews live on a separate artwork-data branch; the workflow assembles and deploys a GitHub Pages artifact. It retains the 120 newest entries. GitHub scheduling is best-effort and cannot guarantee an exact hourly publication.
+A GitHub Actions workflow runs once an hour and can be started manually from main. With no owner configuration it uses a pinned, compact open-weight diffusion model on the free GitHub-hosted CPU runner. Higher-quality generation can use FLUX.1-schnell on a self-hosted GPU runner or an explicitly configured OpenAI-compatible API. The workflow validates the result, adds a visible MOSUL HERITAGE · PREVIEW · NOT FOR SALE watermark, signs the provenance record when the repository signing secret is available, updates the catalog, and deploys GitHub Pages. Unmarked masters are not committed publicly. The rolling catalog and watermarked previews live on a separate `artwork-data` branch. It retains the 120 newest entries. GitHub scheduling is best-effort and cannot guarantee an exact hourly publication.
 
 ## Safe defaults
 
-- Without a configured backend, no image is generated or published. The default backend is a no-op until configured.
+- With no configured backend, `cpu-free` is selected. It runs `segmind/small-sd` from the immutable safetensors revision `728f8b598d7d305bd30c20cbdfbaa6ffa7eec9cc` on a GitHub-hosted CPU runner and needs no provider key or interactive session. The model is distributed under CreativeML Open RAIL-M; its use restrictions still apply.
+- Every raw output must pass PNG, dimension, contrast, and color-diversity checks before it is watermarked or added to the catalog. A failed generation is never published.
 - `flux-local` uses the open-source FLUX.1-schnell model with Diffusers source installed directly from its pinned GitHub release. It requires an online self-hosted Linux x64 runner labelled `gpu`, a CUDA-matched PyTorch build, enough GPU/host memory, and access to download the model weights once. The runner must be registered by the owner. GitHub-hosted runners are not used for this local mode. Hardware and electricity costs depend on the owner's machine.
 - The alternative image API may charge for generation; no paid provider is configured by this workflow.
 - The model card marks FLUX.1-schnell as Apache-2.0, including commercial use. That model license does not by itself grant rights to every output or clear similarity, privacy, cultural-heritage, trademark, or training-data questions. Review each candidate before a sale.
@@ -22,7 +23,7 @@ Set these in the repository's Actions secrets and variables. Never place API key
 
 | Secret / variable | Purpose |
 | --- | --- |
-| `ARTWORK_BACKEND` (Actions variable) | Set to `flux-local` for the owner-managed GPU runner, or `openai-compatible` for a configured API. Leave unset to keep generation disabled. |
+| `ARTWORK_BACKEND` (Actions variable) | Optional. Leave unset for automatic free CPU generation; set `flux-local` for an owner-managed GPU runner or `openai-compatible` for a configured API. |
 | ARTWORK_API_URL | HTTPS endpoint for an OpenAI-compatible image API that accepts prompt, size, n, response_format and returns data[0].b64_json. |
 | ARTWORK_API_KEY | Private bearer key for the image provider. |
 | ARTWORK_MODEL (Actions variable) | Optional provider model identifier. |
@@ -38,7 +39,7 @@ Only unique IDs with status=sold, an exact category match, a valid timestamp in 
 
 ## GitHub Pages setup
 
-After merging to main, choose Settings → Pages → Build and deployment → Source → GitHub Actions. This switches the existing branch-based Pages deployment. Then choose a backend. For `flux-local`, register the owner's GPU computer as a self-hosted runner with labels `self-hosted`, `linux`, `x64`, and `gpu`, and preinstall a PyTorch build compatible with its CUDA driver; the workflow installs the pinned Diffusers dependencies. For the API mode, configure the provider secrets. Start Actions → Hourly artwork preview pipeline → Run workflow and review the log and deployed catalog.
+After merging to main, the scheduled job needs no interactive Colab session, image upload, or provider key. GitHub Pages must use **GitHub Actions** as its source. For `flux-local`, register the owner's GPU computer as a self-hosted runner with labels `self-hosted`, `linux`, `x64`, and `gpu`, and preinstall a PyTorch build compatible with its CUDA driver. For API mode, configure the provider secrets.
 
 ## Before any sale
 

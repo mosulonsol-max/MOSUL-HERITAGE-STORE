@@ -70,12 +70,13 @@ def prompt_for(now):
 GENERATION_DETAILS = {}
 
 def get_png(prompt, output_file):
-    backend = os.environ.get("ARTWORK_BACKEND", "openai-compatible").strip().casefold()
-    if backend == "flux-local":
-        generator = Path(__file__).with_name("generate_flux.py")
+    backend = os.environ.get("ARTWORK_BACKEND", "cpu-free").strip().casefold()
+    if backend in {"flux-local", "cpu-free"}:
+        generator_name = "generate_flux.py" if backend == "flux-local" else "generate_cpu.py"
+        generator = Path(__file__).with_name(generator_name)
         command = [sys.executable, str(generator), "--prompt", prompt, "--output", str(output_file)]
         reference_query = os.environ.get("ARTWORK_REFERENCE_QUERY", "").strip()
-        if reference_query:
+        if backend == "flux-local" and reference_query:
             command.extend(["--reference-query", reference_query])
         completed = subprocess.run(command, check=True, capture_output=True, text=True, timeout=3600)
         for line in reversed(completed.stdout.splitlines()):
@@ -88,14 +89,14 @@ def get_png(prompt, output_file):
                 continue
         raw = Path(output_file).read_bytes()
         if len(raw) > 20_000_000 or raw[:8].hex() != "89504e470d0a1a0a":
-            raise ValueError("Local model must produce a PNG under 20 MB")
+            raise ValueError("Local generator must produce a PNG under 20 MB")
         with Image.open(io.BytesIO(raw)) as image:
             width, height = image.size
         if width < 512 or height < 512 or width > 8192 or height > 8192:
-            raise ValueError("Local model produced dimensions outside the accepted range")
+            raise ValueError("Local generator produced dimensions outside the accepted range")
         return raw
     if backend != "openai-compatible":
-        raise ValueError("ARTWORK_BACKEND must be flux-local or openai-compatible")
+        raise ValueError("ARTWORK_BACKEND must be cpu-free, flux-local, or openai-compatible")
     endpoint = os.environ.get("ARTWORK_API_URL", "").strip()
     key = os.environ.get("ARTWORK_API_KEY", "").strip()
     model = os.environ.get("ARTWORK_MODEL", "").strip()
@@ -116,6 +117,24 @@ def get_png(prompt, output_file):
     if width < 512 or height < 512 or width > 8192 or height > 8192:
         raise ValueError("Image dimensions are outside the accepted range")
     return raw
+
+
+def validate_visual_quality(raw):
+    """Reject corrupt, blank, or nearly uniform outputs before publication."""
+    with Image.open(io.BytesIO(raw)) as source:
+        image = source.convert("RGB")
+    sample = image.resize((128, 128))
+    pixels = list(sample.get_flattened_data() if hasattr(sample, "get_flattened_data") else sample.getdata())
+    means = [sum(pixel[channel] for pixel in pixels) / len(pixels) for channel in range(3)]
+    variances = [
+        sum((pixel[channel] - means[channel]) ** 2 for pixel in pixels) / len(pixels)
+        for channel in range(3)
+    ]
+    contrast = sum(value ** 0.5 for value in variances) / 3
+    colors = len(set(pixels))
+    if contrast < 8 or colors < 256:
+        raise ValueError("Generated image failed the automatic visual-quality gate")
+    return {"status": "passed", "contrast": round(contrast, 2), "sampled_colors": colors}
 
 def watermark_preview(raw):
     with Image.open(io.BytesIO(raw)) as source:
@@ -192,9 +211,9 @@ def main():
     args = parser.parse_args()
     out = Path(args.output_dir)
     output_file = os.environ.get("GITHUB_OUTPUT")
-    backend = os.environ.get("ARTWORK_BACKEND", "openai-compatible").strip().casefold()
+    backend = os.environ.get("ARTWORK_BACKEND", "cpu-free").strip().casefold()
     api_ready = bool(os.environ.get("ARTWORK_API_URL") and os.environ.get("ARTWORK_API_KEY"))
-    if backend != "flux-local" and not api_ready:
+    if backend == "openai-compatible" and not api_ready:
         print("Image provider is not configured; no image was generated.")
         if output_file:
             Path(output_file).write_text("ready=false\n", encoding="utf-8")
@@ -211,6 +230,7 @@ def main():
         if output_file:
             Path(output_file).write_text("ready=false\n", encoding="utf-8")
         return 0
+    quality = validate_visual_quality(raw)
     image = watermark_preview(raw)
     category = "digital-art-one-of-one"
     identifier = "MH-" + now.strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
@@ -228,6 +248,11 @@ def main():
         "title": title,
         "prompt": prompt,
         "model": GENERATION_DETAILS.get("model", os.environ.get("ARTWORK_MODEL", "provider-default")),
+        "model_revision": GENERATION_DETAILS.get("model_revision"),
+        "model_license": GENERATION_DETAILS.get("model_license"),
+        "generation_compute": GENERATION_DETAILS.get("compute", backend),
+        "generation_seed": GENERATION_DETAILS.get("seed"),
+        "automated_quality_gate": quality,
         "category": category,
         "created_at": now.isoformat().replace("+00:00", "Z"),
         "image": "generated/" + image_path.name,
