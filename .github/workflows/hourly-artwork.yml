@@ -1,5 +1,14 @@
 name: Hourly artwork preview pipeline
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/hourly-artwork.yml'
+      - 'ai-engine/**'
+      - 'config/ai-capabilities.json'
+      - 'requirements*.txt'
+      - 'scripts/build_catalog.py'
+      - 'scripts/generate_*.py'
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
