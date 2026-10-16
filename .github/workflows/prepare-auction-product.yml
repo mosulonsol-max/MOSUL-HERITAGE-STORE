@@ -1,0 +1,80 @@
+name: Prepare encrypted auction product
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: prepare-genesis-auction-product
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Check out product source
+        uses: actions/checkout@v4
+        with:
+          path: source
+      - name: Check out protected auction artifacts branch
+        uses: actions/checkout@v4
+        with:
+          path: artifacts
+      - name: Prepare artifact branch
+        run: |
+          if git -C artifacts ls-remote --exit-code origin refs/heads/auction-data >/dev/null 2>&1; then
+            git -C artifacts fetch origin auction-data
+            git -C artifacts switch -C auction-data FETCH_HEAD
+          else
+            git -C artifacts switch --orphan auction-data
+            git -C artifacts rm -rf .
+          fi
+      - name: Install pinned free CPU generator
+        run: |
+          python -m pip install --disable-pip-version-check -r source/requirements.txt
+          python -m pip install --disable-pip-version-check torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check -r source/requirements-cpu.txt
+      - name: Generate the exact signed lot artwork
+        env:
+          ARTWORK_SEED: "1932000001"
+        run: |
+          python source/scripts/generate_cpu.py \
+            --prompt "Create an original museum-quality interpretive digital artwork informed by the cited 1932 Library of Congress catalogue record of Mosul, with the Al-Hadba minaret rising over the old city. Warm limestone, brick geometry, atmospheric archival palette, respectful contemporary reconstruction. This is not a historical photograph. No words, letters, logos, signatures or watermarks. Square composition." \
+            --output master.png | tee generation.json
+      - name: Validate and watermark the public preview
+        env:
+          PYTHONPATH: source:source/ai-engine
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from scripts.generate_artwork import validate_visual_quality, watermark_preview
+          raw = Path('master.png').read_bytes()
+          print(validate_visual_quality(raw))
+          Path('preview.png').write_bytes(watermark_preview(raw))
+          PY
+      - name: Build signed certificate and encrypted private package
+        env:
+          ARTWORK_SIGNING_KEY_B64: ${{ secrets.ARTWORK_SIGNING_KEY_B64 }}
+        run: |
+          python source/scripts/package_auction_product.py \
+            --master master.png --preview preview.png \
+            --product source/sale-service/products/MOSUL-GENESIS-000001.json \
+            --assets source/sale-service/products/MOSUL-GENESIS-000001.assets.json \
+            --generation-metadata generation.json \
+            --output-dir prepared \
+            --preview-url https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/auction-product/MOSUL-GENESIS-000001-preview.png
+      - name: Persist only the preview, certificate, manifest and encrypted package
+        run: |
+          mkdir -p artifacts/auction-product
+          cp prepared/* artifacts/auction-product/
+          git -C artifacts config user.name 'github-actions[bot]'
+          git -C artifacts config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C artifacts add auction-product/
+          if git -C artifacts diff --cached --quiet; then
+            echo 'The deterministic auction product is already current.'
+          else
+            git -C artifacts commit -m 'Prepare encrypted Genesis auction product'
+            git -C artifacts push origin HEAD:auction-data
+          fi
+      - name: Erase plaintext job files
+        if: always()
+        run: rm -f master.png preview.png generation.json
