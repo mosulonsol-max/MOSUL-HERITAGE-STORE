@@ -15,18 +15,25 @@
     "rights_note": "Final production must retain the Library of Congress rights/advisory record in the certificate."
   },
   "public_preview": {
-    "url": "",
-    "sha256": "",
+    "url": "https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/auction-product/MOSUL-GENESIS-000001-preview.png",
+    "sha256": "62aeeb16eabafc4e999a418d1132dc138ffcedb20b8316bf70377a1269f075ce",
     "watermarked": true
   },
   "collector_master": {
-    "sha256": "",
-    "width": 0,
-    "height": 0,
+    "sha256": "d85feaa0c09530dc6f6b98830d237f8546594396482c241d461562f756a823ad",
+    "width": 512,
+    "height": 512,
     "publicly_accessible": false
   },
   "delivery_package": {
-    "sha256": "",
-    "contents": ["Collector Master", "certificate.json", "SHA256SUMS", "LICENSE.txt"]
+    "sha256": "9f801baa5856284739c346395a6abff8ba3cf725f4968d9edc3893a31db6b658",
+    "contents": [
+      "Collector Master",
+      "certificate.json",
+      "SHA256SUMS",
+      "LICENSE.txt"
+    ],
+    "encrypted_artifact_sha256": "4738f60b287410ee29a3866e9e6d2e4c222528f7edadf86bf71177cebd1a7249",
+    "encryption": "AES-256-GCM; key derived with HKDF-SHA256 from the artwork signing seed"
   }
 }
