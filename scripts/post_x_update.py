@@ -11,9 +11,9 @@ import requests
 from requests_oauthlib import OAuth1
 
 try:
-    from .x_text import weighted_length
+    from .x_text import accepted_post_id, weighted_length
 except ImportError:  # Direct execution: python scripts/post_x_update.py
-    from x_text import weighted_length
+    from x_text import accepted_post_id, weighted_length
 
 QUEUE = "social/updates.json"
 POST_URL = "https://api.x.com/2/tweets"
@@ -99,11 +99,15 @@ def main():
                   credentials["X_ACCESS_TOKEN"], credentials["X_ACCESS_TOKEN_SECRET"])
     response = requests.post(POST_URL, json={"text": text}, auth=auth,
                              headers={"Content-Type": "application/json"}, timeout=30)
-    if response.status_code != 201:
-        raise RuntimeError(f"X API returned HTTP {response.status_code}: {response.text[:500]}")
-    post_id = response.json().get("data", {}).get("id")
-    if not post_id:
-        raise RuntimeError("X accepted request but returned no post id; do not retry automatically.")
+    try:
+        payload = response.json()
+    except ValueError:
+        payload = None
+    post_id = accepted_post_id(response.status_code, payload, response.text)
+    if post_id is None:
+        print("X publication deferred: the configured X API account has no credits. "
+              "No retry was attempted and this is not a code failure.")
+        return 0
     print(f"Published update {post_label} to X (post id {post_id}; {count}/280 characters).")
     return 0
 

@@ -5,10 +5,15 @@ import unittest
 from pathlib import Path
 
 from scripts.queue_daily_update import POSTS, choose_slot, queue_update, validate_achievement_update
-from scripts.x_text import weighted_length
+from scripts.x_text import accepted_post_id, weighted_length
 
 
 class SocialQueueTests(unittest.TestCase):
+    def test_x_credit_exhaustion_is_deferred_without_masking_other_errors(self):
+        self.assertIsNone(accepted_post_id(402, {"detail": "credits depleted"}, "credits depleted"))
+        with self.assertRaises(RuntimeError):
+            accepted_post_id(401, {"detail": "unauthorized"}, "unauthorized")
+
     def test_posts_fit_x_and_are_ascii(self):
         for text in POSTS.values():
             self.assertTrue(text.isascii())
