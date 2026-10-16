@@ -64,7 +64,7 @@ jobs:
           key: mosul-small-sd-728f8b598d7d305bd30c20cbdfbaa6ffa7eec9cc
       - name: Test AI policy before execution
         env:
-          PYTHONPATH: source/ai-engine
+          PYTHONPATH: source:source/ai-engine
         run: |
           python -m unittest discover -s source/ai-engine/tests -v
           python -m unittest discover -s source/tests -v
