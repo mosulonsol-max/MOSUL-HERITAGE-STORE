@@ -1,0 +1,67 @@
+name: Publish verified Colab preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_path:
+        description: ZIP uploaded to the artwork-data branch
+        required: true
+        default: sessions/latest.zip
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: mosul-colab-preview-publish
+  cancel-in-progress: false
+
+jobs:
+  import-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out application source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: source
+      - name: Check out artwork data
+        uses: actions/checkout@v4
+        with:
+          ref: artwork-data
+          path: data
+      - name: Install CPU-side validation dependencies
+        run: python -m pip install --disable-pip-version-check -r source/requirements.txt
+      - name: Verify bundle, sign record, and import preview
+        env:
+          SESSION_BUNDLE_PATH: ${{ inputs.bundle_path }}
+          ARTWORK_SIGNING_KEY_B64: ${{ secrets.ARTWORK_SIGNING_KEY_B64 }}
+          PYTHONPATH: source/ai-engine
+        run: python source/scripts/import_colab_preview.py --bundle "$SESSION_BUNDLE_PATH" --data-dir data
+      - name: Save imported preview record
+        run: |
+          git -C data config user.name 'github-actions[bot]'
+          git -C data config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C data add catalog.json generated/ ai-audit.jsonl sessions/
+          git -C data commit -m 'Import verified Colab preview session'
+          git -C data push origin HEAD:artwork-data
+      - name: Assemble public preview
+        run: |
+          cp data/catalog.json source/catalog.json
+          mkdir -p source/generated
+          cp -a data/generated/. source/generated/
+          python source/scripts/build_catalog.py source
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: source
+
+  deploy:
+    needs: import-and-build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - name: Publish preview to GitHub Pages
+        uses: actions/deploy-pages@v4
