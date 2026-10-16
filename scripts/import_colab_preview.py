@@ -29,7 +29,11 @@ def main() -> int:
     parser.add_argument("--data-dir", required=True)
     args = parser.parse_args()
     bundle_arg = args.bundle
-    if not re.fullmatch(r"sessions/[A-Za-z0-9._-]+\\.zip", bundle_arg):
+    bundle_name = PurePosixPath(bundle_arg).name
+    if (len(PurePosixPath(bundle_arg).parts) != 2 or PurePosixPath(bundle_arg).parts[0] != "sessions"
+            or not bundle_name.endswith(".zip") or not bundle_name.isascii()
+            or not all(ch.isalnum() or ch in "._-" for ch in bundle_name)):
+
         raise ValueError("Bundle must be a ZIP under sessions/ with a simple filename")
     data = Path(args.data_dir).resolve()
     bundle = (data / bundle_arg).resolve()
@@ -70,8 +74,8 @@ def main() -> int:
             raise RuntimeError("Pillow must be installed by the workflow") from exc
         signing_key = os.environ.get("ARTWORK_SIGNING_KEY_B64", "").strip()
         if signing_key:
-            record["provenance_signature"] = sign_record(record, signing_key)
             record["watermark_status"] = "Signed public preview record; not a sale or legal authorship claim."
+            record["provenance_signature"] = sign_record(record, signing_key)
         else:
             record.pop("provenance_signature", None)
             record["provenance_signature_status"] = "not_configured"
