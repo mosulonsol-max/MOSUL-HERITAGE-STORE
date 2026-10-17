@@ -9,8 +9,8 @@ the protected project branch or can be started manually from GitHub Actions.
 It exercises:
 
 1. an exact finalized native-SOL transfer;
-2. creation of a fresh six-decimal Token-2022 test mint, buyer and merchant
-   token accounts, and exact MOSUL-like test-token payment verification; and
+2. creation of a fresh six-decimal Token-2022 test mint, exact payment
+   verification, and exact refund verification; and
 3. a Metaplex Core NFT mint followed by transfer and an on-chain owner check.
 
 The Token-2022 mint is a test asset, not the project's MOSUL token. The NFT

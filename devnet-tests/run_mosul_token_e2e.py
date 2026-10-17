@@ -29,7 +29,8 @@ from spl.token.instructions import (
     transfer_checked,
 )
 
-from core import DevnetRpc, confirm_payment, connect, create_intent
+from core import (DevnetRpc, claim_refund, comparable_sales, confirm_payment,
+                  connect, create_intent, finalize_refund, request_refund)
 
 RPC = "https://api.devnet.solana.com"
 MEMO_PROGRAM = Pubkey.from_string("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr")
@@ -110,11 +111,23 @@ async def run() -> int:
                 Instruction(MEMO_PROGRAM, intent["memo"].encode("utf-8"), []),
             ])
             confirmed = confirm_payment(db, intent["id"], signature, DevnetRpc())
+            request_refund(db, intent["id"], intent["refund_token"])
+            claim_refund(db, intent["id"])
+            refund_signature = await send(client, buyer, [
+                transfer_checked(TransferCheckedParams(
+                    program_id=TOKEN_2022_PROGRAM_ID, source=merchant_ata, mint=mint.pubkey(),
+                    dest=buyer_ata, owner=merchant.pubkey(), amount=PAYMENT_RAW, decimals=DECIMALS,
+                )),
+                Instruction(MEMO_PROGRAM, ("REFUND:" + intent["id"]).encode("utf-8"), []),
+            ], [merchant])
+            refunded = finalize_refund(db, intent["id"], refund_signature, DevnetRpc())
             print(json.dumps({
                 "network": "devnet", "asset": "ephemeral Token-2022 test mint",
                 "mint": str(mint.pubkey()), "decimals": DECIMALS,
                 "amount_base_units": PAYMENT_RAW, "payment_status": confirmed["status"],
                 "payment_signature": signature,
+                "refund_status": refunded["status"], "refund_signature": refund_signature,
+                "comparables_after_refund": len(comparable_sales(db)["comparables"]),
                 "explorer": f"https://solscan.io/tx/{signature}?cluster=devnet",
                 "private_keys_persisted": False,
             }, indent=2))

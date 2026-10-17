@@ -44,7 +44,7 @@ jobs:
         env:
           PYTHONPATH: payment-service
         run: python payment-service/live_devnet_test.py
-      - name: Rehearse Token-2022 MOSUL test-mint payment on Devnet
+      - name: Rehearse Token-2022 MOSUL test-mint payment and refund on Devnet
         env:
           PYTHONPATH: payment-service
         run: python devnet-tests/run_mosul_token_e2e.py

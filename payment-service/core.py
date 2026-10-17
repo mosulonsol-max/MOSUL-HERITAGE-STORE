@@ -323,6 +323,39 @@ def _verified_token_refund(transaction: dict, intent: sqlite3.Row) -> bool:
     return transfer_ok and debit_ok and credit_ok and memo_ok
 
 
+def claim_refund(db: sqlite3.Connection, intent_id: str) -> dict:
+    """Atomically claim a requested refund so a second worker cannot pay it twice."""
+    with db:
+        claimed = db.execute(
+            "UPDATE payment_intents SET status='refund_processing' "
+            "WHERE id=? AND status='refund_requested'", (intent_id,)).rowcount
+    if not claimed:
+        raise ValueError("refund is not available to claim")
+    return dict(db.execute("SELECT * FROM payment_intents WHERE id=?", (intent_id,)).fetchone())
+
+
+def finalize_refund(db: sqlite3.Connection, intent_id: str, signature: str,
+                    rpc: DevnetRpc | None = None) -> dict:
+    """Mark a claimed refund complete only after its exact Devnet transfer is final."""
+    signature = validate_signature(signature)
+    intent = db.execute("SELECT * FROM payment_intents WHERE id=?", (intent_id,)).fetchone()
+    if not intent:
+        raise KeyError("payment intent not found")
+    if intent["status"] == "refunded" and intent["refund_signature"] == signature:
+        return {"id": intent_id, "status": "refunded", "signature": signature, "network": "devnet"}
+    if intent["status"] != "refund_processing":
+        raise ValueError("refund intent must be claimed before finalization")
+    refund_tx = (rpc or DevnetRpc()).transaction(signature)
+    verified = (_verified_token_refund(refund_tx, intent) if intent["asset_mint"]
+                else _verified_refund(refund_tx, intent))
+    if not verified:
+        raise ValueError("finalized transaction does not match the exact devnet refund")
+    with db:
+        db.execute("UPDATE payment_intents SET status='refunded', refund_signature=? WHERE id=? AND status='refund_processing'",
+                   (signature, intent_id))
+    return {"id": intent_id, "status": "refunded", "signature": signature, "network": "devnet"}
+
+
 def confirm_payment(db: sqlite3.Connection, intent_id: str, signature: str, rpc: DevnetRpc) -> dict:
     signature = validate_signature(signature)
     intent = db.execute("SELECT * FROM payment_intents WHERE id=?", (intent_id,)).fetchone()
@@ -407,10 +440,9 @@ def process_refunds(db: sqlite3.Connection, keypair_path: str, rpc: DevnetRpc | 
             command = ["solana", "transfer", "--url", DEVNET_RPC, "--keypair", str(keypair),
                        "--lamports", str(intent["amount_lamports"]), "--allow-unfunded-recipient",
                        "--with-memo", "REFUND:" + intent["id"], intent["buyer"]]
-        with db:
-            claimed = db.execute("UPDATE payment_intents SET status='refund_processing' WHERE id=? AND status='refund_requested'",
-                                 (intent["id"],)).rowcount
-        if not claimed:
+        try:
+            claim_refund(db, intent["id"])
+        except ValueError:
             continue
         try:
             completed = subprocess.run(command, check=False, capture_output=True, text=True, timeout=90)
@@ -429,22 +461,12 @@ def process_refunds(db: sqlite3.Connection, keypair_path: str, rpc: DevnetRpc | 
             continue
         signature = matches[-1]
         try:
-            signature = validate_signature(signature)
-            refund_tx = rpc.transaction(signature)
+            completed_refund = finalize_refund(db, intent["id"], signature, rpc)
         except (ValueError, RuntimeError, OSError, TimeoutError):
             # Keep the claim so a transfer whose RPC result is delayed cannot be sent twice.
             results.append({"id": intent["id"], "status": "unverified"})
             continue
-        verified = (_verified_token_refund(refund_tx, intent) if intent["asset_mint"]
-                    else _verified_refund(refund_tx, intent))
-        if not verified:
-            # The signature exists but its outcome is not yet proven. Do not retry automatically.
-            results.append({"id": intent["id"], "status": "unverified"})
-            continue
-        with db:
-            db.execute("UPDATE payment_intents SET status='refunded', refund_signature=? WHERE id=?",
-                       (signature, intent["id"]))
-        results.append({"id": intent["id"], "status": "refunded", "signature": signature})
+        results.append(completed_refund)
     return results
 
 
