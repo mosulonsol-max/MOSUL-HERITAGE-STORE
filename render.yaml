@@ -39,6 +39,8 @@ services:
         value: MOSUL HERITAGE STORE
       - key: SELLER_COUNTRY
         value: Iraq
+      - key: SELLER_ONLINE_ONLY
+        value: "1"
       - key: SELLER_SUPPORT_EMAIL
         value: mosulonsol@gmail.com
       - key: SELLER_TERMS_SIGNED_AT
