@@ -320,6 +320,8 @@ def _token_amounts(balances: list[dict], mint: str, owner: str) -> dict[int, int
 def verify_transaction(transaction: dict | None, order: sqlite3.Row) -> None:
     if not transaction or transaction.get("meta", {}).get("err") is not None:
         raise ValueError("transaction is missing or failed")
+    if not order["buyer_wallet"]:
+        raise ValueError("order has no verified buyer wallet")
     if order["reference_key"] not in _account_keys(transaction):
         raise ValueError("transaction does not contain the unique order reference")
     block_time = transaction.get("blockTime")
@@ -337,6 +339,14 @@ def verify_transaction(transaction: dict | None, order: sqlite3.Row) -> None:
     received = sum(after.get(i, 0) - before.get(i, 0) for i in set(before) | set(after))
     if received != order["amount_raw"]:
         raise ValueError("finalized transaction does not contain the exact token payment")
+    buyer_before = _token_amounts(meta.get("preTokenBalances", []), order["mint"],
+                                  order["buyer_wallet"])
+    buyer_after = _token_amounts(meta.get("postTokenBalances", []), order["mint"],
+                                 order["buyer_wallet"])
+    debited = sum(buyer_before.get(i, 0) - buyer_after.get(i, 0)
+                  for i in set(buyer_before) | set(buyer_after))
+    if debited != order["amount_raw"]:
+        raise ValueError("finalized transaction was not paid by the winning bidder")
 
 
 def confirm_order(db: sqlite3.Connection, *, order_id: str, signature: str,
