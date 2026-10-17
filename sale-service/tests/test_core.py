@@ -33,9 +33,13 @@ class Rpc:
             "meta": {
                 "err": None,
                 "preTokenBalances": [{"accountIndex": 2, "mint": self.row["mint"],
-                    "owner": MERCHANT, "uiTokenAmount": {"amount": "1000000"}}],
+                    "owner": MERCHANT, "uiTokenAmount": {"amount": "1000000"}},
+                    {"accountIndex": 3, "mint": self.row["mint"],
+                     "owner": BUYER, "uiTokenAmount": {"amount": "2000000"}}],
                 "postTokenBalances": [{"accountIndex": 2, "mint": self.row["mint"],
-                    "owner": MERCHANT, "uiTokenAmount": {"amount": str(1_000_000 + self.payment_amount)}}],
+                    "owner": MERCHANT, "uiTokenAmount": {"amount": str(1_000_000 + self.payment_amount)}},
+                    {"accountIndex": 3, "mint": self.row["mint"],
+                     "owner": BUYER, "uiTokenAmount": {"amount": str(2_000_000 - self.payment_amount)}}],
             },
             "transaction": {"message": {"accountKeys": [
                 {"pubkey": BUYER}, {"pubkey": self.row["reference_key"]},
@@ -121,6 +125,16 @@ class SaleTests(unittest.TestCase):
         tx = Rpc(row).transaction(SIGNATURE)
         tx["meta"]["postTokenBalances"][0]["uiTokenAmount"]["amount"] = "149999999"
         with self.assertRaises(ValueError):
+            verify_transaction(tx, row)
+
+    def test_payment_from_another_wallet_is_rejected(self):
+        order = self.order()
+        row = self.db.execute("SELECT * FROM orders WHERE id=?", (order["id"],)).fetchone()
+        tx = Rpc(row).transaction(SIGNATURE)
+        for balance in tx["meta"]["preTokenBalances"] + tx["meta"]["postTokenBalances"]:
+            if balance["accountIndex"] == 3:
+                balance["owner"] = "11111111111111111111111111111111"
+        with self.assertRaisesRegex(ValueError, "not paid by the winning bidder"):
             verify_transaction(tx, row)
         tx = Rpc(row).transaction(SIGNATURE)
         tx["transaction"]["message"]["accountKeys"] = []
