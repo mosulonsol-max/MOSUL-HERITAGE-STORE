@@ -62,7 +62,7 @@ and next-bidder scenario.
 
 تقدّم MOSUL HERITAGE: حسّنا التحقق من دفعة المزاد وربطناها بمحفظة الفائز، واجتزنا محاكاة محلية للمزايدة والتسوية والتسليم. البيع ما زال مغلقًا حتى استكمال الشروط والتجهيزات النهائية.
 
-This post is 193 Unicode code points (under X's 280-character limit). It reports
+This post is 182 Unicode code points (under X's 280-character limit). It reports
 verified local work and does not claim the auction is live.
 
 ## What must happen before real launch
