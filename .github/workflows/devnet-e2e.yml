@@ -35,40 +35,18 @@ jobs:
       - name: Install isolated Devnet test dependencies
         run: |
           python -m pip install -r payment-service/requirements-devnet-test.txt
-          python -m pip install -r sale-service/requirements.txt
           npm ci --prefix devnet-tests
-      - id: unit_tests
-        name: Run payment and auction unit tests
+      - name: Run payment and auction unit tests
         run: |
           PYTHONPATH=payment-service python -m unittest discover -s payment-service/tests -v
           PYTHONPATH=sale-service python -m unittest discover -s sale-service/tests -v
-      - id: native_sol
-        name: Rehearse native SOL payment on Devnet
-        if: ${{ success() }}
-        continue-on-error: true
+      - name: Rehearse native SOL payment on Devnet
         env:
           PYTHONPATH: payment-service
         run: python payment-service/live_devnet_test.py
-      - id: token_2022
-        name: Rehearse Token-2022 MOSUL test-mint payment and refund on Devnet
-        if: ${{ always() && steps.unit_tests.outcome == 'success' }}
-        continue-on-error: true
+      - name: Rehearse Token-2022 MOSUL test-mint payment and refund on Devnet
         env:
           PYTHONPATH: payment-service
         run: python devnet-tests/run_mosul_token_e2e.py
-      - id: core_nft
-        name: Rehearse Metaplex Core mint and transfer on Devnet
-        if: ${{ always() && steps.unit_tests.outcome == 'success' }}
-        continue-on-error: true
+      - name: Rehearse Metaplex Core mint and transfer on Devnet
         run: npm --prefix devnet-tests run test:core-nft
-      - name: Report live rehearsal outcomes
-        if: ${{ always() }}
-        env:
-          NATIVE_SOL: ${{ steps.native_sol.outcome }}
-          TOKEN_2022: ${{ steps.token_2022.outcome }}
-          CORE_NFT: ${{ steps.core_nft.outcome }}
-        run: |
-          printf 'native SOL rehearsal: %s\\n' "$NATIVE_SOL"
-          printf 'Token-2022 payment/refund rehearsal: %s\\n' "$TOKEN_2022"
-          printf 'Metaplex Core rehearsal: %s\\n' "$CORE_NFT"
-          test "$NATIVE_SOL" = success && test "$TOKEN_2022" = success && test "$CORE_NFT" = success
