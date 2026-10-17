@@ -69,7 +69,7 @@ capture("dex_pairs",dex_pairs)
 capture("signature_page_https",website)
 REPORT["limitations"].extend([
 "Explorer creator labels are not cryptographic evidence of legal project ownership.",
-"An actual wallet message signature is still required; this job does not sign or verify an owner's message.",
+"A wallet-control signature has been independently verified and published at docs/MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json; this job does not verify legal identity.",
 "Founder/team allocation, related-wallet clusters, locks, vesting and beneficial ownership cannot be inferred from the top-account list alone.",
 "Even if HTTPS page loads, Phantom iPhone signing and end-to-end UX require manual testing.",
 "No application is submitted by this workflow."
@@ -81,3 +81,22 @@ print(json.dumps({"timestamp_utc":REPORT["timestamp_utc"],
     "pairs_found":len(REPORT["sources"].get("dex_pairs",[])),
     "https_page":REPORT["sources"].get("signature_page_https"),
     "report_file":"exchange-evidence.json"},indent=2))
+
+# Actionable exchange diligence summary in job logs; raw source data remains in artifact.
+supply=REPORT["sources"].get("token_supply",{}).get("value",{})
+accounts=REPORT["sources"].get("largest_token_accounts",[])
+total=int(supply.get("amount") or 0)
+top20=sum(int(account.get("amount") or 0) for account in accounts)
+pairs=REPORT["sources"].get("dex_pairs",[])
+print("LISTING_EVIDENCE_SUMMARY="+json.dumps({
+ "timestamp_utc":REPORT["timestamp_utc"],
+ "mint":MINT,
+ "supply":supply.get("uiAmountString"),
+ "decimals":supply.get("decimals"),
+ "top20_token_account_share_pct":round(top20/total*100,4) if total else None,
+ "top20_are_not_beneficial_owners":True,
+ "dex_pair_count":len(pairs),
+ "dex_pairs":[{"dex":p.get("dexId"),"pair":p.get("pairAddress"),"liquidity_usd":(p.get("liquidity") or {}).get("usd"),"volume_24h":(p.get("volume") or {}).get("h24"),"price_usd":p.get("priceUsd")} for p in pairs],
+ "website":REPORT["sources"].get("signature_page_https"),
+ "errors":REPORT["errors"]
+},ensure_ascii=False))
