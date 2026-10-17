@@ -265,6 +265,64 @@ def _verified_refund(transaction: dict, intent: sqlite3.Row) -> bool:
     return transfer_ok and memo_ok
 
 
+def _verified_token_refund(transaction: dict, intent: sqlite3.Row) -> bool:
+    """Verify an exact finalized Token-2022 refund back to the paying wallet."""
+    if (not transaction or transaction.get("meta", {}).get("err") is not None
+            or not intent["asset_mint"] or not isinstance(transaction.get("blockTime"), int)):
+        return False
+    meta = transaction.get("meta", {})
+    message = transaction.get("transaction", {}).get("message", {})
+    account_keys = message.get("accountKeys", [])
+    balances = {}
+    for field in ("preTokenBalances", "postTokenBalances"):
+        for entry in meta.get(field, []):
+            if entry.get("mint") != intent["asset_mint"]:
+                continue
+            amount = entry.get("uiTokenAmount", {}).get("amount")
+            decimals = entry.get("uiTokenAmount", {}).get("decimals")
+            if not isinstance(amount, str) or decimals != intent["asset_decimals"]:
+                return False
+            balances.setdefault(entry.get("accountIndex"), {})[field] = (
+                entry.get("owner"), int(amount))
+
+    transfer_ok = memo_ok = debit_ok = credit_ok = False
+    for instruction in message.get("instructions", []):
+        parsed = instruction.get("parsed")
+        if instruction.get("programId") == TOKEN_2022_PROGRAM:
+            if not isinstance(parsed, dict) or parsed.get("type") != "transferChecked":
+                continue
+            info = parsed.get("info", {})
+            token_amount = info.get("tokenAmount", {})
+            transfer_ok = transfer_ok or (
+                info.get("mint") == intent["asset_mint"]
+                and info.get("authority") == intent["merchant"]
+                and token_amount.get("amount") == str(intent["amount_lamports"])
+                and token_amount.get("decimals") == intent["asset_decimals"]
+            )
+            indices = {}
+            for index, key in enumerate(account_keys):
+                address = key.get("pubkey") if isinstance(key, dict) else key
+                if address in {info.get("source"), info.get("destination")}:
+                    indices[address] = index
+            source = balances.get(indices.get(info.get("source")), {})
+            destination = balances.get(indices.get(info.get("destination")), {})
+            source_owner = (source.get("preTokenBalances") or source.get("postTokenBalances") or (None, 0))[0]
+            destination_owner = (destination.get("preTokenBalances") or destination.get("postTokenBalances") or (None, 0))[0]
+            source_before = source.get("preTokenBalances", (None, 0))[1]
+            source_after = source.get("postTokenBalances", (None, 0))[1]
+            destination_before = destination.get("preTokenBalances", (None, 0))[1]
+            destination_after = destination.get("postTokenBalances", (None, 0))[1]
+            debit_ok = debit_ok or (
+                source_owner == intent["merchant"]
+                and source_before - source_after == intent["amount_lamports"])
+            credit_ok = credit_ok or (
+                destination_owner == intent["buyer"]
+                and destination_after - destination_before == intent["amount_lamports"])
+        if instruction.get("program") == "spl-memo" and parsed == "REFUND:" + intent["id"]:
+            memo_ok = True
+    return transfer_ok and debit_ok and credit_ok and memo_ok
+
+
 def confirm_payment(db: sqlite3.Connection, intent_id: str, signature: str, rpc: DevnetRpc) -> dict:
     signature = validate_signature(signature)
     intent = db.execute("SELECT * FROM payment_intents WHERE id=?", (intent_id,)).fetchone()
@@ -317,36 +375,57 @@ def request_refund(db: sqlite3.Connection, intent_id: str, refund_token: str) ->
 
 
 def process_refunds(db: sqlite3.Connection, keypair_path: str, rpc: DevnetRpc | None = None) -> list[dict]:
+    rows = db.execute("SELECT * FROM payment_intents WHERE status='refund_requested' ORDER BY created_at").fetchall()
+    if not rows:
+        return []
     keypair = Path(keypair_path)
     if not keypair.is_file():
         raise ValueError("devnet refund keypair file is missing")
-    results = []
     rpc = rpc or DevnetRpc()
-    rows = db.execute("SELECT * FROM payment_intents WHERE status='refund_requested' ORDER BY created_at").fetchall()
+    results = []
     for intent in rows:
         if not intent["buyer"]:
             continue
+        if intent["asset_mint"]:
+            # Token base units are never passed to the native-SOL transfer CLI.
+            try:
+                from solders.keypair import Keypair
+                refund_key = Keypair.from_json(keypair.read_text(encoding="utf-8"))
+            except (ImportError, ValueError, OSError):
+                results.append({"id": intent["id"], "status": "invalid_refund_keypair"})
+                continue
+            if str(refund_key.pubkey()) != intent["merchant"]:
+                results.append({"id": intent["id"], "status": "refund_keypair_mismatch"})
+                continue
+            token_amount = format(Decimal(intent["amount_lamports"]) /
+                                  (Decimal(10) ** intent["asset_decimals"]), "f")
+            command = ["spl-token", "--program-id", TOKEN_2022_PROGRAM,
+                       "--owner", str(keypair), "--url", DEVNET_RPC,
+                       "transfer", "--fund-recipient", intent["asset_mint"], token_amount,
+                       intent["buyer"], "--with-memo", "REFUND:" + intent["id"]]
+        else:
+            command = ["solana", "transfer", "--url", DEVNET_RPC, "--keypair", str(keypair),
+                       "--lamports", str(intent["amount_lamports"]), "--allow-unfunded-recipient",
+                       "--with-memo", "REFUND:" + intent["id"], intent["buyer"]]
         with db:
             claimed = db.execute("UPDATE payment_intents SET status='refund_processing' WHERE id=? AND status='refund_requested'",
                                  (intent["id"],)).rowcount
         if not claimed:
             continue
-        command = ["solana", "transfer", "--url", DEVNET_RPC, "--keypair", str(keypair),
-                   "--lamports", str(intent["amount_lamports"]), "--allow-unfunded-recipient",
-                   "--with-memo", "REFUND:" + intent["id"], intent["buyer"]]
-        completed = subprocess.run(command, check=False, capture_output=True, text=True, timeout=90)
+        try:
+            completed = subprocess.run(command, check=False, capture_output=True, text=True, timeout=90)
+        except subprocess.TimeoutExpired:
+            # A CLI timeout can occur after broadcast. Keep the claim to prevent a duplicate refund.
+            results.append({"id": intent["id"], "status": "needs_reconciliation"})
+            continue
         if completed.returncode:
-            with db:
-                db.execute("UPDATE payment_intents SET status='refund_requested' WHERE id=? AND status='refund_processing'",
-                           (intent["id"],))
-            results.append({"id": intent["id"], "status": "failed"})
+            # Nonzero exit does not prove the network rejected a broadcast transaction.
+            results.append({"id": intent["id"], "status": "needs_reconciliation"})
             continue
         matches = SIGNATURE_RE.findall(completed.stdout)
         if not matches:
-            with db:
-                db.execute("UPDATE payment_intents SET status='refund_requested' WHERE id=? AND status='refund_processing'",
-                           (intent["id"],))
-            results.append({"id": intent["id"], "status": "ambiguous"})
+            # Without a signature, chain outcome is unknown; never auto-send a second time.
+            results.append({"id": intent["id"], "status": "needs_reconciliation"})
             continue
         signature = matches[-1]
         try:
@@ -356,7 +435,9 @@ def process_refunds(db: sqlite3.Connection, keypair_path: str, rpc: DevnetRpc | 
             # Keep the claim so a transfer whose RPC result is delayed cannot be sent twice.
             results.append({"id": intent["id"], "status": "unverified"})
             continue
-        if not _verified_refund(refund_tx, intent):
+        verified = (_verified_token_refund(refund_tx, intent) if intent["asset_mint"]
+                    else _verified_refund(refund_tx, intent))
+        if not verified:
             # The signature exists but its outcome is not yet proven. Do not retry automatically.
             results.append({"id": intent["id"], "status": "unverified"})
             continue

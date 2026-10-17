@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from solders.keypair import Keypair
 
 from core import TOKEN_2022_PROGRAM, comparable_sales, confirm_payment, connect, create_intent, process_refunds, request_refund
 
@@ -33,27 +34,53 @@ class TokenRpc(Rpc):
         i = self.intent
         return {"blockTime": int(time.time()), "meta": {"err": None,
             "preTokenBalances": [
-                {"accountIndex": 0, "mint": i["asset_mint"], "owner": BUYER,
+                {"accountIndex": 0, "mint": i["asset_mint"], "owner": i["buyer"],
                  "uiTokenAmount": {"amount": "9000000", "decimals": 6}},
-                {"accountIndex": 1, "mint": i["asset_mint"], "owner": MERCHANT,
+                {"accountIndex": 1, "mint": i["asset_mint"], "owner": i["merchant"],
                  "uiTokenAmount": {"amount": "0", "decimals": 6}},
             ], "postTokenBalances": [
-                {"accountIndex": 0, "mint": i["asset_mint"], "owner": BUYER,
+                {"accountIndex": 0, "mint": i["asset_mint"], "owner": i["buyer"],
                  "uiTokenAmount": {"amount": "4000000", "decimals": 6}},
-                {"accountIndex": 1, "mint": i["asset_mint"], "owner": MERCHANT,
+                {"accountIndex": 1, "mint": i["asset_mint"], "owner": i["merchant"],
                  "uiTokenAmount": {"amount": "5000000", "decimals": 6}},
             ]}, "transaction": {"message": {
                 "accountKeys": [{"pubkey": "buyer-token-account"}, {"pubkey": "seller-token-account"}],
                 "instructions": [
                     {"programId": TOKEN_2022_PROGRAM, "parsed": {"type": "transferChecked", "info": {
                         "source": "buyer-token-account", "destination": "seller-token-account",
-                        "mint": i["asset_mint"], "authority": BUYER,
+                        "mint": i["asset_mint"], "authority": i["buyer"],
                         "tokenAmount": {"amount": "5000000", "decimals": 6}}}},
                     {"program": "spl-memo", "parsed": i["memo"]},
                 ]}}}
     def token_mint(self, mint):
         return {"owner": TOKEN_2022_PROGRAM, "data": {"parsed": {"type": "mint", "info": {
             "decimals": 6, "isInitialized": True}}}}
+
+
+class TokenRefundRpc:
+    def __init__(self, intent): self.intent = intent
+    def transaction(self, signature):
+        i = self.intent
+        return {"blockTime": int(time.time()), "meta": {"err": None,
+            "preTokenBalances": [
+                {"accountIndex": 0, "mint": i["asset_mint"], "owner": i["merchant"],
+                 "uiTokenAmount": {"amount": "5000000", "decimals": 6}},
+                {"accountIndex": 1, "mint": i["asset_mint"], "owner": i["buyer"],
+                 "uiTokenAmount": {"amount": "0", "decimals": 6}},
+            ], "postTokenBalances": [
+                {"accountIndex": 0, "mint": i["asset_mint"], "owner": i["merchant"],
+                 "uiTokenAmount": {"amount": "0", "decimals": 6}},
+                {"accountIndex": 1, "mint": i["asset_mint"], "owner": i["buyer"],
+                 "uiTokenAmount": {"amount": "5000000", "decimals": 6}},
+            ]}, "transaction": {"message": {
+                "accountKeys": ["merchant-token-account", "buyer-token-account"],
+                "instructions": [
+                    {"programId": TOKEN_2022_PROGRAM, "parsed": {"type": "transferChecked", "info": {
+                        "source": "merchant-token-account", "destination": "buyer-token-account",
+                        "mint": i["asset_mint"], "authority": i["merchant"],
+                        "tokenAmount": {"amount": "5000000", "decimals": 6}}}},
+                    {"program": "spl-memo", "parsed": "REFUND:" + i["id"]},
+                ]}}}
 
 
 class PaymentTests(unittest.TestCase):
@@ -105,6 +132,40 @@ class PaymentTests(unittest.TestCase):
         result = request_refund(self.db, self.intent["id"], self.intent["refund_token"])
         self.assertEqual(result["status"], "refund_requested")
         self.assertEqual(len(comparable_sales(self.db)["comparables"]), 0)
+    @patch("core.subprocess.run")
+    def test_token_refund_uses_exact_devnet_token_transfer_and_verifies_finality(self, run):
+        merchant_key = Keypair()
+        mint = str(Keypair().pubkey())
+        intent = create_intent(self.db, idempotency_key="mosul-refund-exact", item_id="art-1",
+            category="digital-art-one-of-one", amount_lamports=5_000_000, price_usd="25",
+            merchant=str(merchant_key.pubkey()), buyer=BUYER, asset_mint=mint, asset_decimals=6)
+        confirm_payment(self.db, intent["id"], SIGNATURE, TokenRpc(intent))
+        request_refund(self.db, intent["id"], intent["refund_token"])
+        keypair_path = Path(self.temp.name) / "merchant.json"
+        keypair_path.write_text(merchant_key.to_json(), encoding="utf-8")
+        run.return_value.returncode = 0
+        run.return_value.stdout = "Signature: " + "1" * 64
+        result = process_refunds(self.db, str(keypair_path), TokenRefundRpc(intent))
+        self.assertEqual(result[0]["status"], "refunded")
+        command = run.call_args.args[0]
+        self.assertEqual(command[0:4], ["spl-token", "--program-id", TOKEN_2022_PROGRAM, "--owner"])
+        self.assertEqual(command[7:12], ["transfer", "--fund-recipient", mint, "5", BUYER])
+        self.assertIn("--program-id", command)
+        self.assertIn("--with-memo", command)
+        row = self.db.execute("SELECT status FROM payment_intents WHERE id=?", (intent["id"],)).fetchone()
+        self.assertEqual(row["status"], "refunded")
+    @patch("core.subprocess.run")
+    def test_ambiguous_cli_failure_cannot_be_retried_automatically(self, run):
+        confirm_payment(self.db, self.intent["id"], SIGNATURE, Rpc(self.intent))
+        request_refund(self.db, self.intent["id"], self.intent["refund_token"])
+        keypair = Path(self.temp.name) / "key.json"
+        keypair.write_text("[]", encoding="utf-8")
+        run.return_value.returncode = 1
+        run.return_value.stdout = ""
+        result = process_refunds(self.db, str(keypair), Rpc(self.intent))
+        self.assertEqual(result[0]["status"], "needs_reconciliation")
+        status = self.db.execute("SELECT status FROM payment_intents WHERE id=?", (self.intent["id"],)).fetchone()[0]
+        self.assertEqual(status, "refund_processing")
     def test_bad_refund_token(self):
         confirm_payment(self.db, self.intent["id"], SIGNATURE, Rpc(self.intent))
         with self.assertRaises(PermissionError): request_refund(self.db, self.intent["id"], "wrong")
