@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MOSUL HERITAGE — Token association statement</title>
+<style>
+body{margin:0;background:#f4efe5;color:#17231f;font:16px/1.6 system-ui,sans-serif}.wrap{width:min(760px,calc(100% - 28px));margin:40px auto}.panel{background:#fffdf8;border:1px solid #d7cdbb;padding:24px}h1{font:42px/1.1 Georgia,serif}button,.wallet{border:0;background:#164b3a;color:#fff;padding:13px 18px;font-weight:800;cursor:pointer;display:inline-block;text-decoration:none}button:disabled{opacity:.5}code,pre{overflow-wrap:anywhere;white-space:pre-wrap}.notice{border-left:4px solid #b78332;padding:12px;background:#fbf3df}.error{color:#812f2f}.hidden{display:none}
+</style>
+</head>
+<body><main class="wrap"><section class="panel">
+<p>MOSUL HERITAGE STORE · OWNER ACTION</p>
+<h1>Sign the token association statement</h1>
+<p class="notice">This signs a public statement only. It does not send funds, approve a transaction, or prove mint authority. Review every line and confirm the active wallet is the store's published receiving wallet.</p>
+<ul>
+<li>Network: Solana Mainnet</li>
+<li>Token mint: <code id="mint"></code></li>
+<li>Project receiving wallet: <code id="wallet"></code></li>
+<li>Statement version: 2026-10-17-v1</li>
+</ul>
+<pre id="message"></pre>
+<button id="sign">Connect wallet and sign statement</button>
+<p><a id="openPhantom" class="wallet hidden" href="#">Open this page in Phantom</a></p>
+<p id="status" role="status"></p><pre id="output"></pre>
+</section></main>
+<script>
+const mint='6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump';
+const wallet='EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu';
+const status=document.getElementById('status'),output=document.getElementById('output');
+document.getElementById('mint').textContent=mint;document.getElementById('wallet').textContent=wallet;
+const pageUrl=location.origin+location.pathname;
+const phantomLink=document.getElementById('openPhantom');
+phantomLink.href='https://phantom.com/ul/browse/'+encodeURIComponent(pageUrl)+'?ref='+encodeURIComponent(location.origin);
+if(!window.solana)phantomLink.classList.remove('hidden');
+function base64(bytes){let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s)}
+function makeMessage(signedAt){return `MOSUL HERITAGE TOKEN ASSOCIATION\nProject: MOSUL HERITAGE STORE\nToken name: MOSUL\nNetwork: Solana mainnet-beta\nToken mint: ${mint}\nProject receiving wallet: ${wallet}\nStatement version: 2026-10-17-v1\nSigned at: ${signedAt}\nDeclaration: I, Ahmed Nabeel, state that the token mint listed above is associated with the MOSUL HERITAGE STORE project and may be identified by the project as its associated token. This signature proves control of the wallet that signed this statement and records my stated association only; it does not prove control of the token mint or guarantee price, returns, or endorsement by Solana or pump.fun.`}
+document.getElementById('message').textContent=makeMessage('<timestamp generated when signing>');
+document.getElementById('sign').onclick=async()=>{try{const provider=window.solana;if(!provider||typeof provider.connect!=='function'||typeof provider.signMessage!=='function')throw Error('Open this HTTPS page in a Solana wallet browser that supports message signing.');const connected=await provider.connect();const active=connected.publicKey.toString();if(active!==wallet)throw Error(`Connected wallet ${active} does not match the published receiving wallet ${wallet}. Switch account and retry.`);const signedAt=new Date().toISOString(),message=makeMessage(signedAt);document.getElementById('message').textContent=message;const signed=await provider.signMessage(new TextEncoder().encode(message),'utf8');const signature=base64(signed.signature||signed);const record={project:'MOSUL HERITAGE STORE',token_name:'MOSUL',network:'solana-mainnet-beta',token_mint:mint,project_receiving_wallet:wallet,statement_version:'2026-10-17-v1',signed_at:signedAt,message,signature_base64:signature};output.textContent=JSON.stringify(record,null,2);status.className='';status.textContent='Signature created. Save the complete JSON record; it can be independently verified.'}catch(e){status.className='error';status.textContent=e.message}};
+</script></body></html>

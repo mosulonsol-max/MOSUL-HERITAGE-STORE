@@ -1,0 +1,52 @@
+name: Devnet payment and NFT rehearsal
+
+on:
+  push:
+    branches:
+      - codex/auction-simulation-review
+    paths:
+      - "payment-service/**"
+      - "sale-service/**"
+      - "devnet-tests/**"
+      - ".github/workflows/devnet-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mosul-devnet-e2e
+  cancel-in-progress: false
+
+jobs:
+  devnet-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: devnet-tests/package-lock.json
+      - name: Install isolated Devnet test dependencies
+        run: |
+          python -m pip install -r payment-service/requirements-devnet-test.txt
+          npm ci --prefix devnet-tests
+      - name: Run payment and auction unit tests
+        run: |
+          PYTHONPATH=payment-service python -m unittest discover -s payment-service/tests -v
+          PYTHONPATH=sale-service python -m unittest discover -s sale-service/tests -v
+      - name: Rehearse native SOL payment on Devnet
+        env:
+          PYTHONPATH: payment-service
+        run: python payment-service/live_devnet_test.py
+      - name: Rehearse Token-2022 MOSUL test-mint payment and refund on Devnet
+        env:
+          PYTHONPATH: payment-service
+        run: python devnet-tests/run_mosul_token_e2e.py
+      - name: Rehearse Metaplex Core mint and transfer on Devnet
+        run: npm --prefix devnet-tests run test:core-nft

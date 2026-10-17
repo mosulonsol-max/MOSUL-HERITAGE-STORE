@@ -13,6 +13,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 DEVNET_RPC = "https://api.devnet.solana.com"
+TOKEN_2022_PROGRAM = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
 MAX_LAMPORTS = 1_000_000_000_000
 SIGNATURE_RE = re.compile(r"[1-9A-HJ-NP-Za-km-z]{64,100}")
 
@@ -54,6 +55,7 @@ def connect(path: str | Path) -> sqlite3.Connection:
         id TEXT PRIMARY KEY, idempotency_key TEXT UNIQUE NOT NULL,
         item_id TEXT NOT NULL, category TEXT NOT NULL, buyer TEXT,
         merchant TEXT NOT NULL, amount_lamports INTEGER NOT NULL,
+        asset_mint TEXT, asset_decimals INTEGER NOT NULL DEFAULT 9,
         price_usd TEXT NOT NULL, memo TEXT UNIQUE NOT NULL,
         refund_token_hash TEXT NOT NULL, status TEXT NOT NULL,
         created_at TEXT NOT NULL, expires_at TEXT NOT NULL,
@@ -66,12 +68,18 @@ def connect(path: str | Path) -> sqlite3.Connection:
         FOREIGN KEY(intent_id) REFERENCES payment_intents(id)
       );
     """)
+    columns = {row[1] for row in db.execute("PRAGMA table_info(payment_intents)")}
+    if "asset_mint" not in columns:
+        db.execute("ALTER TABLE payment_intents ADD COLUMN asset_mint TEXT")
+    if "asset_decimals" not in columns:
+        db.execute("ALTER TABLE payment_intents ADD COLUMN asset_decimals INTEGER NOT NULL DEFAULT 9")
     return db
 
 
 def create_intent(db: sqlite3.Connection, *, idempotency_key: str, item_id: str,
                   category: str, amount_lamports: int, price_usd: str,
-                  merchant: str, buyer: str | None = None, ttl_minutes: int = 30) -> dict:
+                  merchant: str, buyer: str | None = None, ttl_minutes: int = 30,
+                  asset_mint: str | None = None, asset_decimals: int = 9) -> dict:
     if not idempotency_key or len(idempotency_key) > 100:
         raise ValueError("invalid idempotency key")
     if not item_id or not category:
@@ -86,9 +94,17 @@ def create_intent(db: sqlite3.Connection, *, idempotency_key: str, item_id: str,
         raise ValueError("USD record price is outside the allowed range")
     merchant = validate_pubkey(merchant)
     buyer = validate_pubkey(buyer) if buyer else None
+    if asset_mint is not None:
+        asset_mint = validate_pubkey(asset_mint)
+        if not isinstance(asset_decimals, int) or not 0 <= asset_decimals <= 9:
+            raise ValueError("invalid token decimals")
+    elif asset_decimals != 9:
+        raise ValueError("native SOL uses 9 decimals")
     existing = db.execute("SELECT * FROM payment_intents WHERE idempotency_key=?", (idempotency_key,)).fetchone()
     if existing:
-        return dict(existing) | {"refund_token": None, "network": "devnet"}
+        public = dict(existing)
+        public.pop("refund_token_hash", None)
+        return public | {"refund_token": None, "network": "devnet"}
     intent_id = secrets.token_urlsafe(18)
     refund_token = secrets.token_urlsafe(32)
     token_hash = __import__("hashlib").sha256(refund_token.encode()).hexdigest()
@@ -96,14 +112,19 @@ def create_intent(db: sqlite3.Connection, *, idempotency_key: str, item_id: str,
     expires = now + dt.timedelta(minutes=max(5, min(ttl_minutes, 120)))
     memo = "MOSUL:" + intent_id
     db.execute(
-        "INSERT INTO payment_intents VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        """INSERT INTO payment_intents
+        (id,idempotency_key,item_id,category,buyer,merchant,amount_lamports,asset_mint,asset_decimals,
+         price_usd,memo,refund_token_hash,status,created_at,expires_at,payment_signature,refund_signature)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (intent_id, idempotency_key, item_id, category, buyer, merchant, amount_lamports,
-         str(usd), memo, token_hash, "pending", now.isoformat(), expires.isoformat(), None, None),
+         asset_mint, asset_decimals, str(usd), memo, token_hash, "pending", now.isoformat(),
+         expires.isoformat(), None, None),
     )
     db.commit()
     return {
         "id": intent_id, "item_id": item_id, "category": category, "buyer": buyer,
-        "merchant": merchant, "amount_lamports": amount_lamports, "price_usd": str(usd),
+        "merchant": merchant, "amount_lamports": amount_lamports, "asset_mint": asset_mint,
+        "asset_decimals": asset_decimals, "price_usd": str(usd),
         "memo": memo, "refund_token": refund_token, "status": "pending",
         "expires_at": expires.isoformat(), "network": "devnet",
     }
@@ -122,11 +143,28 @@ class DevnetRpc:
             raise RuntimeError("Solana devnet RPC rejected the transaction lookup")
         return data.get("result")
 
+    def token_mint(self, mint: str) -> dict | None:
+        payload = {"jsonrpc": "2.0", "id": 1, "method": "getAccountInfo", "params": [mint, {
+            "encoding": "jsonParsed", "commitment": "finalized"
+        }]}
+        request = urllib.request.Request(DEVNET_RPC, data=json.dumps(payload).encode(),
+                                         headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(request, timeout=30) as response:
+            data = json.loads(response.read(1_000_000))
+        if data.get("error"):
+            raise RuntimeError("Solana devnet RPC rejected the mint lookup")
+        return data.get("result", {}).get("value")
+
 
 def _verified_transfer(transaction: dict, intent: sqlite3.Row) -> bool:
     if not transaction or transaction.get("meta", {}).get("err") is not None:
         return False
-    instructions = transaction.get("transaction", {}).get("message", {}).get("instructions", [])
+    if not _inside_intent_window(transaction, intent):
+        return False
+    message = transaction.get("transaction", {}).get("message", {})
+    instructions = message.get("instructions", [])
+    account_keys = message.get("accountKeys", [])
+    signers = {item.get("pubkey") for item in account_keys if isinstance(item, dict) and item.get("signer")}
     transfer_ok = memo_ok = False
     for instruction in instructions:
         parsed = instruction.get("parsed")
@@ -136,10 +174,197 @@ def _verified_transfer(transaction: dict, intent: sqlite3.Row) -> bool:
                 info.get("destination") == intent["merchant"]
                 and info.get("lamports") == intent["amount_lamports"]
                 and (not intent["buyer"] or info.get("source") == intent["buyer"])
+                and info.get("source") in signers
             )
         if instruction.get("program") == "spl-memo":
             memo_ok = memo_ok or parsed == intent["memo"]
     return transfer_ok and memo_ok
+
+
+def _verified_token_transfer(transaction: dict, intent: sqlite3.Row) -> bool:
+    """Verify an exact Token-2022 transfer by parsed instruction and token balance deltas."""
+    if (not transaction or transaction.get("meta", {}).get("err") is not None
+            or not intent["asset_mint"] or not _inside_intent_window(transaction, intent)):
+        return False
+    meta = transaction.get("meta", {})
+    message = transaction.get("transaction", {}).get("message", {})
+    instructions = message.get("instructions", [])
+    balances = {}
+    for field in ("preTokenBalances", "postTokenBalances"):
+        for entry in meta.get(field, []):
+            if entry.get("mint") != intent["asset_mint"]:
+                continue
+            amount = entry.get("uiTokenAmount", {}).get("amount")
+            decimals = entry.get("uiTokenAmount", {}).get("decimals")
+            if not isinstance(amount, str) or decimals != intent["asset_decimals"]:
+                return False
+            key = entry.get("accountIndex")
+            if key is not None:
+                balances.setdefault(key, {})[field] = (entry.get("owner"), int(amount))
+    verified_transfer = memo_ok = False
+    for instruction in instructions:
+        parsed = instruction.get("parsed")
+        if instruction.get("programId") == TOKEN_2022_PROGRAM:
+            if not isinstance(parsed, dict) or parsed.get("type") != "transferChecked":
+                continue
+            info = parsed.get("info", {})
+            token_amount = info.get("tokenAmount", {})
+            instruction_matches = (
+                info.get("mint") == intent["asset_mint"]
+                and info.get("authority") == intent["buyer"]
+                and token_amount.get("amount") == str(intent["amount_lamports"])
+                and token_amount.get("decimals") == intent["asset_decimals"]
+            )
+            source_index = destination_index = None
+            for index, key in enumerate(message.get("accountKeys", [])):
+                address = key.get("pubkey") if isinstance(key, dict) else key
+                if address == info.get("source"):
+                    source_index = index
+                if address == info.get("destination"):
+                    destination_index = index
+            source = balances.get(source_index, {})
+            destination = balances.get(destination_index, {})
+            source_owner = (source.get("preTokenBalances") or source.get("postTokenBalances") or (None, 0))[0]
+            destination_owner = (destination.get("preTokenBalances") or destination.get("postTokenBalances") or (None, 0))[0]
+            source_before = source.get("preTokenBalances", (None, 0))[1]
+            source_after = source.get("postTokenBalances", (None, 0))[1]
+            dest_before = destination.get("preTokenBalances", (None, 0))[1]
+            dest_after = destination.get("postTokenBalances", (None, 0))[1]
+            # Bind both balance deltas to the same parsed transfer instruction.
+            # Otherwise separate transfers in one transaction could satisfy the
+            # buyer-debit and merchant-credit checks independently.
+            verified_transfer = verified_transfer or (
+                instruction_matches
+                and source_owner == intent["buyer"]
+                and source_before - source_after == intent["amount_lamports"]
+                and destination_owner == intent["merchant"]
+                and dest_after - dest_before == intent["amount_lamports"]
+            )
+        if instruction.get("program") == "spl-memo" and parsed == intent["memo"]:
+            memo_ok = True
+    return verified_transfer and memo_ok
+
+
+def _inside_intent_window(transaction: dict, intent: sqlite3.Row) -> bool:
+    block_time = transaction.get("blockTime")
+    if not isinstance(block_time, int):
+        return False
+    created = dt.datetime.fromisoformat(intent["created_at"]).timestamp()
+    expires = dt.datetime.fromisoformat(intent["expires_at"]).timestamp()
+    return created <= block_time <= expires
+
+
+def _verified_refund(transaction: dict, intent: sqlite3.Row) -> bool:
+    if not transaction or transaction.get("meta", {}).get("err") is not None:
+        return False
+    instructions = transaction.get("transaction", {}).get("message", {}).get("instructions", [])
+    transfer_ok = memo_ok = False
+    for instruction in instructions:
+        parsed = instruction.get("parsed")
+        if instruction.get("program") == "system" and isinstance(parsed, dict) and parsed.get("type") == "transfer":
+            info = parsed.get("info", {})
+            transfer_ok = transfer_ok or (
+                info.get("source") == intent["merchant"]
+                and info.get("destination") == intent["buyer"]
+                and info.get("lamports") == intent["amount_lamports"]
+            )
+        if instruction.get("program") == "spl-memo" and parsed == "REFUND:" + intent["id"]:
+            memo_ok = True
+    return transfer_ok and memo_ok
+
+
+def _verified_token_refund(transaction: dict, intent: sqlite3.Row) -> bool:
+    """Verify an exact finalized Token-2022 refund back to the paying wallet."""
+    if (not transaction or transaction.get("meta", {}).get("err") is not None
+            or not intent["asset_mint"] or not isinstance(transaction.get("blockTime"), int)):
+        return False
+    meta = transaction.get("meta", {})
+    message = transaction.get("transaction", {}).get("message", {})
+    account_keys = message.get("accountKeys", [])
+    balances = {}
+    for field in ("preTokenBalances", "postTokenBalances"):
+        for entry in meta.get(field, []):
+            if entry.get("mint") != intent["asset_mint"]:
+                continue
+            amount = entry.get("uiTokenAmount", {}).get("amount")
+            decimals = entry.get("uiTokenAmount", {}).get("decimals")
+            if not isinstance(amount, str) or decimals != intent["asset_decimals"]:
+                return False
+            balances.setdefault(entry.get("accountIndex"), {})[field] = (
+                entry.get("owner"), int(amount))
+
+    verified_transfer = memo_ok = False
+    for instruction in message.get("instructions", []):
+        parsed = instruction.get("parsed")
+        if instruction.get("programId") == TOKEN_2022_PROGRAM:
+            if not isinstance(parsed, dict) or parsed.get("type") != "transferChecked":
+                continue
+            info = parsed.get("info", {})
+            token_amount = info.get("tokenAmount", {})
+            instruction_matches = (
+                info.get("mint") == intent["asset_mint"]
+                and info.get("authority") == intent["merchant"]
+                and token_amount.get("amount") == str(intent["amount_lamports"])
+                and token_amount.get("decimals") == intent["asset_decimals"]
+            )
+            indices = {}
+            for index, key in enumerate(account_keys):
+                address = key.get("pubkey") if isinstance(key, dict) else key
+                if address in {info.get("source"), info.get("destination")}:
+                    indices[address] = index
+            source = balances.get(indices.get(info.get("source")), {})
+            destination = balances.get(indices.get(info.get("destination")), {})
+            source_owner = (source.get("preTokenBalances") or source.get("postTokenBalances") or (None, 0))[0]
+            destination_owner = (destination.get("preTokenBalances") or destination.get("postTokenBalances") or (None, 0))[0]
+            source_before = source.get("preTokenBalances", (None, 0))[1]
+            source_after = source.get("postTokenBalances", (None, 0))[1]
+            destination_before = destination.get("preTokenBalances", (None, 0))[1]
+            destination_after = destination.get("postTokenBalances", (None, 0))[1]
+            # As with payment verification, require the refund's source debit
+            # and buyer credit to belong to this exact transfer instruction.
+            verified_transfer = verified_transfer or (
+                instruction_matches
+                and source_owner == intent["merchant"]
+                and source_before - source_after == intent["amount_lamports"]
+                and destination_owner == intent["buyer"]
+                and destination_after - destination_before == intent["amount_lamports"]
+            )
+        if instruction.get("program") == "spl-memo" and parsed == "REFUND:" + intent["id"]:
+            memo_ok = True
+    return verified_transfer and memo_ok
+
+
+def claim_refund(db: sqlite3.Connection, intent_id: str) -> dict:
+    """Atomically claim a requested refund so a second worker cannot pay it twice."""
+    with db:
+        claimed = db.execute(
+            "UPDATE payment_intents SET status='refund_processing' "
+            "WHERE id=? AND status='refund_requested'", (intent_id,)).rowcount
+    if not claimed:
+        raise ValueError("refund is not available to claim")
+    return dict(db.execute("SELECT * FROM payment_intents WHERE id=?", (intent_id,)).fetchone())
+
+
+def finalize_refund(db: sqlite3.Connection, intent_id: str, signature: str,
+                    rpc: DevnetRpc | None = None) -> dict:
+    """Mark a claimed refund complete only after its exact Devnet transfer is final."""
+    signature = validate_signature(signature)
+    intent = db.execute("SELECT * FROM payment_intents WHERE id=?", (intent_id,)).fetchone()
+    if not intent:
+        raise KeyError("payment intent not found")
+    if intent["status"] == "refunded" and intent["refund_signature"] == signature:
+        return {"id": intent_id, "status": "refunded", "signature": signature, "network": "devnet"}
+    if intent["status"] != "refund_processing":
+        raise ValueError("refund intent must be claimed before finalization")
+    refund_tx = (rpc or DevnetRpc()).transaction(signature)
+    verified = (_verified_token_refund(refund_tx, intent) if intent["asset_mint"]
+                else _verified_refund(refund_tx, intent))
+    if not verified:
+        raise ValueError("finalized transaction does not match the exact devnet refund")
+    with db:
+        db.execute("UPDATE payment_intents SET status='refunded', refund_signature=? WHERE id=? AND status='refund_processing'",
+                   (signature, intent_id))
+    return {"id": intent_id, "status": "refunded", "signature": signature, "network": "devnet"}
 
 
 def confirm_payment(db: sqlite3.Connection, intent_id: str, signature: str, rpc: DevnetRpc) -> dict:
@@ -155,7 +380,17 @@ def confirm_payment(db: sqlite3.Connection, intent_id: str, signature: str, rpc:
         db.execute("UPDATE payment_intents SET status='expired' WHERE id=?", (intent_id,)); db.commit()
         raise ValueError("payment intent expired")
     transaction = rpc.transaction(signature)
-    if not _verified_transfer(transaction, intent):
+    verified = (_verified_token_transfer(transaction, intent) if intent["asset_mint"]
+                else _verified_transfer(transaction, intent))
+    if verified and intent["asset_mint"]:
+        mint_account = rpc.token_mint(intent["asset_mint"])
+        parsed_mint = (mint_account or {}).get("data", {}).get("parsed", {})
+        mint_info = parsed_mint.get("info", {})
+        verified = ((mint_account or {}).get("owner") == TOKEN_2022_PROGRAM
+                    and parsed_mint.get("type") == "mint"
+                    and mint_info.get("isInitialized") is True
+                    and mint_info.get("decimals") == intent["asset_decimals"])
+    if not verified:
         raise ValueError("finalized transaction does not match the exact devnet payment intent")
     sold_at = utc_now().isoformat()
     source = "https://solscan.io/tx/" + signature + "?cluster=devnet"
@@ -180,39 +415,75 @@ def request_refund(db: sqlite3.Connection, intent_id: str, refund_token: str) ->
         raise ValueError("only a paid intent can request a refund")
     with db:
         db.execute("UPDATE payment_intents SET status='refund_requested' WHERE id=?", (intent_id,))
-        db.execute("DELETE FROM completed_sales WHERE intent_id=?", (intent_id,))
     return {"id": intent_id, "status": "refund_requested", "network": "devnet"}
 
 
-def process_refunds(db: sqlite3.Connection, keypair_path: str) -> list[dict]:
+def process_refunds(db: sqlite3.Connection, keypair_path: str, rpc: DevnetRpc | None = None) -> list[dict]:
+    rows = db.execute("SELECT * FROM payment_intents WHERE status='refund_requested' ORDER BY created_at").fetchall()
+    if not rows:
+        return []
     keypair = Path(keypair_path)
     if not keypair.is_file():
         raise ValueError("devnet refund keypair file is missing")
+    rpc = rpc or DevnetRpc()
     results = []
-    rows = db.execute("SELECT * FROM payment_intents WHERE status='refund_requested' ORDER BY created_at").fetchall()
     for intent in rows:
         if not intent["buyer"]:
             continue
-        command = ["solana", "transfer", "--url", DEVNET_RPC, "--keypair", str(keypair),
-                   "--lamports", str(intent["amount_lamports"]), "--allow-unfunded-recipient",
-                   "--with-memo", "REFUND:" + intent["id"], intent["buyer"]]
-        completed = subprocess.run(command, check=False, capture_output=True, text=True, timeout=90)
+        if intent["asset_mint"]:
+            # Token base units are never passed to the native-SOL transfer CLI.
+            try:
+                from solders.keypair import Keypair
+                refund_key = Keypair.from_json(keypair.read_text(encoding="utf-8"))
+            except (ImportError, ValueError, OSError):
+                results.append({"id": intent["id"], "status": "invalid_refund_keypair"})
+                continue
+            if str(refund_key.pubkey()) != intent["merchant"]:
+                results.append({"id": intent["id"], "status": "refund_keypair_mismatch"})
+                continue
+            token_amount = format(Decimal(intent["amount_lamports"]) /
+                                  (Decimal(10) ** intent["asset_decimals"]), "f")
+            command = ["spl-token", "--program-id", TOKEN_2022_PROGRAM,
+                       "--owner", str(keypair), "--url", DEVNET_RPC,
+                       "transfer", "--fund-recipient", intent["asset_mint"], token_amount,
+                       intent["buyer"], "--with-memo", "REFUND:" + intent["id"]]
+        else:
+            command = ["solana", "transfer", "--url", DEVNET_RPC, "--keypair", str(keypair),
+                       "--lamports", str(intent["amount_lamports"]), "--allow-unfunded-recipient",
+                       "--with-memo", "REFUND:" + intent["id"], intent["buyer"]]
+        try:
+            claim_refund(db, intent["id"])
+        except ValueError:
+            continue
+        try:
+            completed = subprocess.run(command, check=False, capture_output=True, text=True, timeout=90)
+        except subprocess.TimeoutExpired:
+            # A CLI timeout can occur after broadcast. Keep the claim to prevent a duplicate refund.
+            results.append({"id": intent["id"], "status": "needs_reconciliation"})
+            continue
         if completed.returncode:
-            results.append({"id": intent["id"], "status": "failed"})
+            # Nonzero exit does not prove the network rejected a broadcast transaction.
+            results.append({"id": intent["id"], "status": "needs_reconciliation"})
             continue
         matches = SIGNATURE_RE.findall(completed.stdout)
         if not matches:
-            results.append({"id": intent["id"], "status": "ambiguous"})
+            # Without a signature, chain outcome is unknown; never auto-send a second time.
+            results.append({"id": intent["id"], "status": "needs_reconciliation"})
             continue
         signature = matches[-1]
-        with db:
-            db.execute("UPDATE payment_intents SET status='refunded', refund_signature=? WHERE id=?",
-                       (signature, intent["id"]))
-        results.append({"id": intent["id"], "status": "refunded", "signature": signature})
+        try:
+            completed_refund = finalize_refund(db, intent["id"], signature, rpc)
+        except (ValueError, RuntimeError, OSError, TimeoutError):
+            # Keep the claim so a transfer whose RPC result is delayed cannot be sent twice.
+            results.append({"id": intent["id"], "status": "unverified"})
+            continue
+        results.append(completed_refund)
     return results
 
 
 def comparable_sales(db: sqlite3.Connection) -> dict:
     cutoff = (utc_now() - dt.timedelta(days=90)).isoformat()
-    rows = db.execute("SELECT * FROM completed_sales WHERE sold_at>=? ORDER BY sold_at DESC LIMIT 500", (cutoff,)).fetchall()
+    rows = db.execute("""SELECT s.* FROM completed_sales AS s
+      JOIN payment_intents AS i ON i.id=s.intent_id
+      WHERE s.sold_at>=? AND i.status='paid' ORDER BY s.sold_at DESC LIMIT 500""", (cutoff,)).fetchall()
     return {"comparables": [dict(row) for row in rows]}

@@ -14,6 +14,7 @@ from core import DevnetRpc, comparable_sales, confirm_payment, connect, create_i
 DB_PATH = os.environ.get("PAYMENT_DB", "data/payments.sqlite3")
 SERVICE_TOKEN = os.environ.get("PAYMENT_SERVICE_TOKEN", "")
 MERCHANT = os.environ.get("DEVNET_MERCHANT_PUBKEY", "")
+DEVNET_MOSUL_MINT = os.environ.get("DEVNET_MOSUL_MINT", "")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -52,9 +53,16 @@ class Handler(BaseHTTPRequestHandler):
             body = self._body()
             with connect(DB_PATH) as db:
                 if self.path == "/intents" and self._admin():
+                    asset = body.get("asset", "SOL")
+                    if asset not in {"SOL", "MOSUL"}:
+                        return self._json(400, {"error": "unsupported devnet payment asset"})
+                    if asset == "MOSUL" and not DEVNET_MOSUL_MINT:
+                        return self._json(503, {"error": "Devnet MOSUL test mint is not configured"})
                     result = create_intent(db, idempotency_key=body["idempotency_key"], item_id=body["item_id"],
                         category=body["category"], amount_lamports=body["amount_lamports"],
-                        price_usd=str(body["price_usd"]), merchant=MERCHANT, buyer=body.get("buyer"))
+                        price_usd=str(body["price_usd"]), merchant=MERCHANT, buyer=body.get("buyer"),
+                        asset_mint=DEVNET_MOSUL_MINT if asset == "MOSUL" else None,
+                        asset_decimals=6 if asset == "MOSUL" else 9)
                 elif self.path.startswith("/intents/") and self.path.endswith("/confirm"):
                     intent_id = self.path.split("/")[2]
                     result = confirm_payment(db, intent_id, body["signature"], DevnetRpc())

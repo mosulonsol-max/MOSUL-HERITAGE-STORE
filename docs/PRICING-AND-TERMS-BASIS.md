@@ -14,6 +14,8 @@ public evidence located was:
 |---|---:|---|
 | Samia Halaby, *YAFA 60*, Bonhams Middle Eastern Art Online, 2022 | GBP 637.50 realised | Middle Eastern digital still/NFT; established artist, so materially stronger market history than this lot |
 | Samia Halaby, *YAFA 73*, same sale | GBP 701.25 realised | Same limitation; useful as an upper-market anchor, not a direct valuation |
+| Roope Rainisto, *The Swimming Hall*, Christie's Augmented Intelligence, 2025 | USD 2,016 realised | AI-assisted NFT at a major auction house; established artist and curated sale, so not a direct valuation |
+| Refik Anadol, *Machine Hallucinations — ISS Dreams – A*, Christie's Augmented Intelligence, 2024 | USD 277,200 realised | AI art by a globally established artist; an outlier and not a direct valuation |
 | Christie's online no-reserve practice | Typically USD/GBP 100 opening bid | Credible auction-design benchmark, not a completed-sale comparable |
 | Christie's, Beeple *Everydays*, 2021 | USD 100 opening bid; exceptional final result | Shows that a low opening bid can allow price discovery; the final result is not comparable |
 
@@ -21,6 +23,8 @@ Sources:
 
 - https://www.art.salon/artwork/samia-halaby_yafa-60-2022_AID853842
 - https://www.art.salon/artwork/samia-halaby_yafa-73-2022_AID853845
+- https://onlineonly.christies.com/s/augmented-intelligence/roope-rainisto-7/249746
+- https://press.christies.com/augmented-intelligence-totals-728784/
 - https://www.christies.com/en/help/auction-help-library/what-is-a-reserve
 - https://press.christies.com/release-christies-to-offer-the-first-purely-digital-nft-based-work-of-art-ever-offered-by-a-major-auction-house/
 
@@ -36,6 +40,13 @@ practice. Competition, if any, determines the final price.
 Review this setting after the first completed sale. Future recommendations must
 use only verified completed sales, never asking prices, and must disclose the
 sample size and material differences.
+
+For a MOSUL-denominated auction, this historical $100 benchmark cannot safely
+be translated into a token amount until a current, independently verifiable
+MOSUL/USD execution quote and sufficient pool depth are available. Do not use
+the token's headline price alone: a thin or absent market can make the quoted
+conversion impossible to execute. No MOSUL opening bid is currently approved
+or configured.
 
 ## Contract design sources
 
