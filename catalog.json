@@ -1,6 +1,39 @@
 {
   "items": [
     {
+      "id": "MH-20261017T174007Z-d1601deb",
+      "title": "River Memory Study — 2026-10-17 17:00 UTC",
+      "prompt": "Create one original, high-quality digital artwork for a cultural collectibles preview. An abstract view of the Tigris as a ribbon of blue and gold through layered Mosul-inspired forms, contemporary fine-art print. The scene is interpretive contemporary art, not a documentary photograph, verified reconstruction, or claim about an exact historical site. No words, letters, logos, watermarks, signatures, or invented historical details. Square image, refined color and texture. Variation key 2026-10-17T17 UTC; create a distinct composition.",
+      "model": "segmind/small-sd",
+      "model_revision": "728f8b598d7d305bd30c20cbdfbaa6ffa7eec9cc",
+      "model_license": "CreativeML Open RAIL-M",
+      "generation_compute": "github-hosted-cpu",
+      "generation_seed": 4175807735,
+      "automated_quality_gate": {
+        "status": "passed",
+        "contrast": 39.75,
+        "sampled_colors": 14052
+      },
+      "category": "digital-art-one-of-one",
+      "created_at": "2026-10-17T17:40:07Z",
+      "image": "generated/MH-20261017T174007Z-d1601deb.png",
+      "sha256": "9f23696ba54ba26fa93a24ab47e4ece42d32b0debb815a8d47c3a3a6b3d7eb03",
+      "classification": "AI-generated, heritage-inspired contemporary artwork; not historical evidence.",
+      "status": "PUBLIC PREVIEW — NOT FOR SALE",
+      "price_benchmark": {
+        "status": "unavailable",
+        "reason": "Comparable-sales source is not configured."
+      },
+      "watermark_status": "Watermarked public preview with a signed provenance record.",
+      "mint_status": "Not minted",
+      "provenance_signature": {
+        "algorithm": "Ed25519",
+        "public_key_b64": "HJvRYpI9wDUVqqPSTpoPx8WvdYq30Ceye2IFNyjfCTU=",
+        "signature_b64": "KmF8CSzMsQ0kjXlTuHY0w+j8pPqj4g/tr2Rk2MzzWLk9tBIPUoEwjVxE/7dfS768Ye4H8cdovlL3+F7CxXsvBg==",
+        "scope": "Canonical JSON record excluding provenance_signature"
+      }
+    },
+    {
       "id": "MH-20261017T164254Z-14f75c73",
       "title": "Courtyard Light Study — 2026-10-17 16:00 UTC",
       "prompt": "Create one original, high-quality digital artwork for a cultural collectibles preview. A quiet courtyard inspired by Mosul, geometric brickwork, warm limestone, late afternoon light, contemporary editorial composition. The scene is interpretive contemporary art, not a documentary photograph, verified reconstruction, or claim about an exact historical site. No words, letters, logos, watermarks, signatures, or invented historical details. Square image, refined color and texture. Variation key 2026-10-17T16 UTC; create a distinct composition.",
