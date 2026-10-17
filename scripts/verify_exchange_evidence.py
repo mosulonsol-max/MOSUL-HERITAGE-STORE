@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Read-only exchange listing evidence collection. No private keys or transactions."""
-import datetime, json, os, urllib.request, urllib.error
+import datetime, json, os, urllib.request, urllib.error, time
 from pathlib import Path
 
 MINT="6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump"
@@ -12,8 +12,14 @@ REPORT={"timestamp_utc":datetime.datetime.now(datetime.timezone.utc).isoformat()
 def fetch(url,payload=None):
     body=None if payload is None else json.dumps(payload).encode()
     req=urllib.request.Request(url,data=body,headers={"User-Agent":"MOSUL-ReadOnly-Verification/1.0","Accept":"application/json","Content-Type":"application/json"})
-    with urllib.request.urlopen(req,timeout=18) as response:
-        return json.load(response)
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req,timeout=18) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as e:
+            if e.code not in (429,500,502,503,504) or attempt==2:
+                raise
+            time.sleep(2*(attempt+1))
 
 def rpc(method,params):
     j=fetch(RPC,{"jsonrpc":"2.0","id":1,"method":method,"params":params})
@@ -32,7 +38,21 @@ def mint_account():
     return v.get("value") if v else None
 
 def top_accounts():
-    v=rpc("getTokenLargestAccounts",[MINT,{"commitment":"finalized"}])
+    try:
+        v=rpc("getTokenLargestAccounts",[MINT,{"commitment":"finalized"}])
+    except Exception as first_error:
+        alternatives=["https://solana-rpc.publicnode.com","https://solana.drpc.org"]
+        v=None
+        for endpoint in alternatives:
+            try:
+                j=fetch(endpoint,{"jsonrpc":"2.0","id":1,"method":"getTokenLargestAccounts","params":[MINT,{"commitment":"finalized"}]})
+                if "error" in j: raise RuntimeError(str(j["error"]))
+                v=j["result"]
+                REPORT["limitations"].append("Largest token accounts retrieved from fallback public Solana RPC: "+endpoint)
+                break
+            except Exception as e:
+                REPORT["errors"].append({"source":"top_accounts_fallback","endpoint":endpoint,"error":str(e)[:200]})
+        if v is None: raise RuntimeError("All RPC providers failed; initial: "+str(first_error)[:160])
     accounts=v.get("value",[])
     REPORT["limitations"].append("Top 20 token accounts are NOT top 20 beneficial owners. LP vaults, exchange custody and wallets may own multiple token accounts.")
     return accounts
@@ -54,6 +74,18 @@ def dex_pairs():
     REPORT["limitations"].append("DEX Screener liquidity and 24h volume are per-pool estimates and may not cover all venues. Do not sum duplicate pools or confuse FDV with market cap.")
     return out
 
+def gecko_pools():
+    url="https://api.geckoterminal.com/api/v2/networks/solana/tokens/"+MINT+"/pools"
+    j=fetch(url)
+    out=[]
+    for p in j.get("data",[]):
+        a=p.get("attributes") or {}
+        out.append({"pool_id":p.get("id"),"address":a.get("address"),"name":a.get("name"),
+                    "reserve_usd":a.get("reserve_in_usd"),"volume_usd":a.get("volume_usd"),
+                    "base_token_price_usd":a.get("base_token_price_usd"),"pool_created_at":a.get("pool_created_at")})
+    REPORT["limitations"].append("GeckoTerminal pools may differ from DexScreener; pool reserve is not necessarily executable liquidity.")
+    return out
+
 def website():
     url="https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/wallet-proof.html"
     req=urllib.request.Request(url,headers={"User-Agent":"MOSUL-ReadOnly-Verification/1.0"})
@@ -66,6 +98,7 @@ capture("mint_account",mint_account)
 capture("largest_token_accounts",top_accounts)
 capture("creator_wallet_token_accounts",creator_tokens)
 capture("dex_pairs",dex_pairs)
+capture("gecko_pools",gecko_pools)
 capture("signature_page_https",website)
 REPORT["limitations"].extend([
 "Explorer creator labels are not cryptographic evidence of legal project ownership.",
@@ -96,6 +129,7 @@ print("LISTING_EVIDENCE_SUMMARY="+json.dumps({
  "top20_token_account_share_pct":round(top20/total*100,4) if total else None,
  "top20_are_not_beneficial_owners":True,
  "dex_pair_count":len(pairs),
+ "gecko_pool_count":len(REPORT["sources"].get("gecko_pools",[])),
  "dex_pairs":[{"dex":p.get("dexId"),"pair":p.get("pairAddress"),"liquidity_usd":(p.get("liquidity") or {}).get("usd"),"volume_24h":(p.get("volume") or {}).get("h24"),"price_usd":p.get("priceUsd")} for p in pairs],
  "website":REPORT["sources"].get("signature_page_https"),
  "errors":REPORT["errors"]
