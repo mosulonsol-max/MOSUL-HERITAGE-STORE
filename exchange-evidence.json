@@ -1,0 +1,122 @@
+{
+  "timestamp_utc": "2026-10-17T19:37:08.032439+00:00",
+  "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
+  "creator_wallet": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
+  "sources": {
+    "token_supply": {
+      "context": {
+        "apiVersion": "4.3.0",
+        "slot": 458154954
+      },
+      "value": {
+        "amount": "1000000000000000",
+        "decimals": 6,
+        "uiAmount": 1000000000.0,
+        "uiAmountString": "1000000000"
+      }
+    },
+    "mint_account": {
+      "data": {
+        "parsed": {
+          "info": {
+            "decimals": 6,
+            "extensions": [
+              {
+                "extension": "metadataPointer",
+                "state": {
+                  "authority": null,
+                  "metadataAddress": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump"
+                }
+              },
+              {
+                "extension": "tokenMetadata",
+                "state": {
+                  "additionalMetadata": [],
+                  "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
+                  "name": "Mosul",
+                  "symbol": "MOSUL",
+                  "updateAuthority": null,
+                  "uri": "https://ipfs.io/ipfs/bafkreibkpjfiybnssrlku3doxwlz7hwb2lbtdj5vyvdbtdss5g34ltdzcq"
+                }
+              }
+            ],
+            "freezeAuthority": null,
+            "isInitialized": true,
+            "mintAuthority": null,
+            "supply": "1000000000000000"
+          },
+          "type": "mint"
+        },
+        "program": "spl-token-2022",
+        "space": 408
+      },
+      "executable": false,
+      "lamports": 2722880,
+      "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+      "rentEpoch": 18446744073709551615,
+      "space": 408
+    },
+    "creator_wallet_token_accounts": {
+      "context": {
+        "slot": 458154958,
+        "apiVersion": "4.3.0-beta.2"
+      },
+      "value": [
+        {
+          "pubkey": "2zczS4yLnXudGUnbP1hCBKtghzft6XMy8sULFxNLaYdY",
+          "account": {
+            "lamports": 1513840,
+            "data": {
+              "program": "spl-token-2022",
+              "parsed": {
+                "info": {
+                  "extensions": [
+                    {
+                      "extension": "immutableOwner"
+                    }
+                  ],
+                  "isNative": false,
+                  "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
+                  "owner": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
+                  "state": "initialized",
+                  "tokenAmount": {
+                    "amount": "7892140409880",
+                    "decimals": 6,
+                    "uiAmount": 7892140.40988,
+                    "uiAmountString": "7892140.40988"
+                  }
+                },
+                "type": "account"
+              },
+              "space": 170
+            },
+            "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+            "executable": false,
+            "rentEpoch": 18446744073709551615,
+            "space": 170
+          }
+        }
+      ]
+    },
+    "dex_pairs": [],
+    "signature_page_https": {
+      "url": "https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/wallet-proof.html",
+      "http_status": 200,
+      "expected_page_present": true
+    }
+  },
+  "errors": [
+    {
+      "source": "largest_token_accounts",
+      "error": "HTTP Error 429: Too Many Requests"
+    }
+  ],
+  "limitations": [
+    "DEX Screener liquidity and 24h volume are per-pool estimates and may not cover all venues. Do not sum duplicate pools or confuse FDV with market cap.",
+    "Explorer creator labels are not cryptographic evidence of legal project ownership.",
+    "A wallet-control signature has been independently verified and published at docs/MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json; this job does not verify legal identity.",
+    "Founder/team allocation, related-wallet clusters, locks, vesting and beneficial ownership cannot be inferred from the top-account list alone.",
+    "Even if HTTPS page loads, Phantom iPhone signing and end-to-end UX require manual testing.",
+    "No application is submitted by this workflow."
+  ]
+}
