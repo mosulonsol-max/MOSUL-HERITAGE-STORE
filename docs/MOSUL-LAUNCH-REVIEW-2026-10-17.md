@@ -26,7 +26,7 @@ Review date: 2026-10-17
 1. Native-SOL payment verification requires a finalized transaction inside the intent time window and the payer as a transaction signer.
 2. Refund requests no longer delete sale records immediately. The price-comparison feed excludes the sale while its intent is not paid.
 3. Refund execution claims the request before sending. It verifies the finalized transaction's exact source, destination, amount and `REFUND:<intent>` memo before marking it refunded. Ambiguous outcomes are held in `refund_processing` to prevent an automatic duplicate transfer and require manual reconciliation.
-4. Added fail-closed Token-2022 MOSUL-test-mint payment verification: exact `transferChecked`, exact token balance decrease/increase, buyer, merchant, mint, decimals and memo; the finalized mint account must be initialized and owned by the Token-2022 program.
+4. Added fail-closed Token-2022 MOSUL-test-mint payment verification: each single `transferChecked` instruction must match the buyer debit and merchant credit in token balances, plus the exact mint, decimals and memo; the finalized mint account must be initialized and owned by the Token-2022 program. Refund verification applies the same same-instruction rule to the merchant debit and buyer credit.
 5. The sale service can disclose an online-only seller location without a fabricated postal address. This is a display/readiness change, not a legal review of disclosure obligations.
 6. Added an exact MOSUL association statement page and an offline Ed25519 verifier; no signature is fabricated or stored by the application.
 7. Added a separate exact Token-2022 refund route; token base units are no longer treated as SOL lamports. Ambiguous CLI/RPC outcomes remain blocked from automatic retry.
