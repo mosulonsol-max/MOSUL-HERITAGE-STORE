@@ -34,3 +34,10 @@ Review date: 2026-10-17
 ## Release gate
 
 Do not turn on public sales until one coherent Devnet flow is completed and independently reviewed: signed MOSUL bid → closed auction → exact MOSUL settlement → NFT received by the winning wallet → delivery record → a tested, policy-compliant refund/dispute route. Then issue a new buyer/seller terms version binding the asset mint, auction currency, delivery, refund conditions and online-only seller contact. The owner must sign that exact version. The mainnet MOSUL relation statement also needs the project wallet's signature. Production activation and any Mainnet transaction remain separate owner-controlled releases.
+
+## Latest verification — 2026-10-17
+
+- Fixed the Devnet workflow's missing `sale-service/requirements.txt` installation and corrected the Token-2022 test imports to use `spl.token.models`.
+- On commit `cadd577d415dea1b6fba7a737104720514734085`, payment/auction unit tests completed successfully in GitHub Actions.
+- The live SOL, Token-2022 payment/refund, and Metaplex Core steps each reached their funding step but were blocked by Solana Devnet faucet HTTP 429. No live payment, refund, test mint, or NFT transfer was confirmed. The workflow now runs all three rehearsals independently and reports each failure instead of stopping at the first faucet error.
+- Independently verified the seller's supplied v2 detached signature against wallet `EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu`. Its signed SHA-256 matches this repository's `docs/SALE-TERMS.md` exactly. This proves the wallet signed v2; it does not extend that signature to MOSUL-token payment, NFT delivery, or a new auction contract.
