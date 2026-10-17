@@ -1,5 +1,9 @@
-name: MOSUL read-only exchange evidence
+name: MOSUL live exchange evidence
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/exchange-evidence.yml'
+      - 'scripts/verify_exchange_evidence.py'
   workflow_dispatch:
   push:
     branches: [main]
@@ -17,7 +21,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Collect read-only live public evidence
+      - name: Collect live public exchange evidence
         run: python scripts/verify_exchange_evidence.py
       - name: Store timestamped raw evidence
         uses: actions/upload-artifact@v4
