@@ -6,7 +6,8 @@ from pathlib import Path
 from unittest.mock import patch
 from solders.keypair import Keypair
 
-from core import TOKEN_2022_PROGRAM, comparable_sales, confirm_payment, connect, create_intent, process_refunds, request_refund
+from core import (TOKEN_2022_PROGRAM, claim_refund, comparable_sales, confirm_payment,
+                  connect, create_intent, finalize_refund, process_refunds, request_refund)
 
 MERCHANT = "11111111111111111111111111111111"
 BUYER = "So11111111111111111111111111111111111111112"
@@ -119,6 +120,36 @@ class PaymentTests(unittest.TestCase):
                 {"accountIndex": 1, "mint": mint, "owner": MERCHANT, "uiTokenAmount": {"amount": "4999999", "decimals": 6}},
             ]}}
         with self.assertRaises(ValueError): confirm_payment(self.db, intent["id"], SIGNATURE, bad)
+
+    def test_mosul_payment_rejects_split_payer_debit_and_merchant_credit(self):
+        mint = "So11111111111111111111111111111111111111112"
+        intent = create_intent(self.db, idempotency_key="mosul-split-payment", item_id="art-1",
+            category="digital-art-one-of-one", amount_lamports=5_000_000, price_usd="25",
+            merchant=MERCHANT, buyer=BUYER, asset_mint=mint, asset_decimals=6)
+        base = TokenRpc(intent)
+        original = base.transaction
+        def split(_signature):
+            tx = original(SIGNATURE)
+            tx["meta"]["preTokenBalances"].append({"accountIndex": 2, "mint": mint,
+                "owner": "attacker", "uiTokenAmount": {"amount": "8000000", "decimals": 6}})
+            tx["meta"]["postTokenBalances"].append({"accountIndex": 2, "mint": mint,
+                "owner": "attacker", "uiTokenAmount": {"amount": "8000000", "decimals": 6}})
+            tx["transaction"]["message"]["accountKeys"] = [
+                "buyer-token-account", "seller-token-account", "attacker-token-account"]
+            tx["transaction"]["message"]["instructions"] = [
+                {"programId": TOKEN_2022_PROGRAM, "parsed": {"type": "transferChecked", "info": {
+                    "source": "buyer-token-account", "destination": "attacker-token-account",
+                    "mint": mint, "authority": BUYER,
+                    "tokenAmount": {"amount": "5000000", "decimals": 6}}}},
+                {"programId": TOKEN_2022_PROGRAM, "parsed": {"type": "transferChecked", "info": {
+                    "source": "attacker-token-account", "destination": "seller-token-account",
+                    "mint": mint, "authority": "attacker",
+                    "tokenAmount": {"amount": "5000000", "decimals": 6}}}},
+                {"program": "spl-memo", "parsed": intent["memo"]},
+            ]
+            return tx
+        base.transaction = split
+        with self.assertRaises(ValueError): confirm_payment(self.db, intent["id"], SIGNATURE, base)
     def test_wrong_transfer_rejected(self):
         bad = Rpc(self.intent); bad.transaction = lambda _: {"meta":{"err":None},"transaction":{"message":{"instructions":[]}}}
         with self.assertRaises(ValueError): confirm_payment(self.db, self.intent["id"], SIGNATURE, bad)
@@ -154,6 +185,39 @@ class PaymentTests(unittest.TestCase):
         self.assertIn("--with-memo", command)
         row = self.db.execute("SELECT status FROM payment_intents WHERE id=?", (intent["id"],)).fetchone()
         self.assertEqual(row["status"], "refunded")
+
+    def test_token_refund_rejects_split_merchant_debit_and_buyer_credit(self):
+        mint = "So11111111111111111111111111111111111111112"
+        intent = create_intent(self.db, idempotency_key="mosul-split-refund", item_id="art-1",
+            category="digital-art-one-of-one", amount_lamports=5_000_000, price_usd="25",
+            merchant=MERCHANT, buyer=BUYER, asset_mint=mint, asset_decimals=6)
+        confirm_payment(self.db, intent["id"], SIGNATURE, TokenRpc(intent))
+        request_refund(self.db, intent["id"], intent["refund_token"])
+        claim_refund(self.db, intent["id"])
+        base = TokenRefundRpc(intent)
+        original = base.transaction
+        def split(_signature):
+            tx = original(SIGNATURE)
+            tx["meta"]["preTokenBalances"].insert(1, {"accountIndex": 2, "mint": mint,
+                "owner": "attacker", "uiTokenAmount": {"amount": "8000000", "decimals": 6}})
+            tx["meta"]["postTokenBalances"].insert(1, {"accountIndex": 2, "mint": mint,
+                "owner": "attacker", "uiTokenAmount": {"amount": "8000000", "decimals": 6}})
+            tx["transaction"]["message"]["accountKeys"] = [
+                "merchant-token-account", "buyer-token-account", "attacker-token-account"]
+            tx["transaction"]["message"]["instructions"] = [
+                {"programId": TOKEN_2022_PROGRAM, "parsed": {"type": "transferChecked", "info": {
+                    "source": "merchant-token-account", "destination": "attacker-token-account",
+                    "mint": mint, "authority": MERCHANT,
+                    "tokenAmount": {"amount": "5000000", "decimals": 6}}}},
+                {"programId": TOKEN_2022_PROGRAM, "parsed": {"type": "transferChecked", "info": {
+                    "source": "attacker-token-account", "destination": "buyer-token-account",
+                    "mint": mint, "authority": "attacker",
+                    "tokenAmount": {"amount": "5000000", "decimals": 6}}}},
+                {"program": "spl-memo", "parsed": "REFUND:" + intent["id"]},
+            ]
+            return tx
+        base.transaction = split
+        with self.assertRaises(ValueError): finalize_refund(self.db, intent["id"], SIGNATURE, base)
     @patch("core.subprocess.run")
     def test_ambiguous_cli_failure_cannot_be_retried_automatically(self, run):
         confirm_payment(self.db, self.intent["id"], SIGNATURE, Rpc(self.intent))
