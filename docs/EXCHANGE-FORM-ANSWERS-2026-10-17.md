@@ -22,6 +22,7 @@ Official form: https://www.mexc.com/token-listing-apply
 - Team members, roles, founder experience and legal status: owner must verify. Do not invent staff or a registered company.
 - Token creator wallet supplied by owner: `EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu`; wallet signature independently verified 2026-10-17; see docs/MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json.
 - The project-to-mint association is documented by the independently verified wallet-signed statement at docs/MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json; legal identity is a separate matter.
+- **Owner disclosure, 2026-10-17:** The owner states there are no other wallets under their or the project's control holding MOSUL beyond the verified signing wallet. This is a declaration, not an on-chain proof of beneficial ownership. Do not describe other token holders as independent until verified.
 
 ## OKX: Core project answers
 - Project: MOSUL HERITAGE; token MOSUL; Solana Token-2022.
@@ -30,7 +31,7 @@ Official form: https://www.mexc.com/token-listing-apply
 - Public GitHub: https://github.com/mosulonsol-max/MOSUL-HERITAGE-STORE
 - Whitepaper: https://github.com/mosulonsol-max/MOSUL-HERITAGE-STORE/blob/main/docs/WHITEPAPER.md
 - Official X: https://x.com/MosulOnSol
-- Tokenomics: 1,000,000,000 supply and 6 decimals verified by Solana RPC at 2026-10-17T19:37:08Z; mint and freeze authorities null. The signer wallet has 7,892,140.40988 MOSUL (0.789214%). **Beneficial ownership, top holders, founder allocation, treasury, vesting and executable liquidity remain unverified.** DexScreener returned zero pools in this snapshot, which does not establish absence of all markets.
+- Tokenomics: 1,000,000,000 supply and 6 decimals verified by Solana RPC at 2026-10-17T19:37:08Z; mint and freeze authorities null. The signer wallet has 7,892,140.40988 MOSUL (0.789214%). **Owner declaration:** no other owner- or project-controlled MOSUL wallets. This is not independently verifiable from a wallet signature; beneficial ownership of third-party accounts, top holders, allocation history, treasury obligations, vesting and executable liquidity remain unverified. DexScreener returned zero pools in this snapshot, which does not establish absence of all markets.
 - No guaranteed appreciation, listing, revenue or fundraising claim.
 - Legal identity/KYC, team disclosure, token ownership and current market metrics must be supplied and verified before final submission.
 
@@ -40,7 +41,7 @@ Official form: https://www.okx.com/token-listing-apply
 1. GitHub Pages HTTPS wallet-proof page returned HTTP 200 on 2026-10-17. Confirm any claimed production sales and wallet checkout independently.
 2. Completed: owner signed the exact association statement using Phantom; Ed25519 signature independently verified and published in docs/MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json.
 3. Completed as of 2026-10-17T19:37:08Z: Token-2022 metadataPointer and tokenMetadata extensions; mint, freeze and metadata update authorities null; supply 1B. Refresh before application.
-4. Analyze top holders and owner-controlled wallets; disclose allocations and treasury accurately.
+4. Owner declares one MOSUL-holding wallet only. Verify top holders, historical token distribution, any custody arrangements, allocation/treasury obligations and vesting independently. Do not equate current wallet balance with original founder allocation.
 5. Obtain timestamped real trading pairs, exchange listings, liquidity and 24h volume.
 6. Owner completes private KYC and accepts official exchange terms.
 7. Submit each form and record acknowledgement IDs. **Neither form has been submitted.**
