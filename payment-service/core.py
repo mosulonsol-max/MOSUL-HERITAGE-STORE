@@ -201,7 +201,7 @@ def _verified_token_transfer(transaction: dict, intent: sqlite3.Row) -> bool:
             key = entry.get("accountIndex")
             if key is not None:
                 balances.setdefault(key, {})[field] = (entry.get("owner"), int(amount))
-    debit_ok = credit_ok = transfer_ok = memo_ok = False
+    verified_transfer = memo_ok = False
     for instruction in instructions:
         parsed = instruction.get("parsed")
         if instruction.get("programId") == TOKEN_2022_PROGRAM:
@@ -209,7 +209,7 @@ def _verified_token_transfer(transaction: dict, intent: sqlite3.Row) -> bool:
                 continue
             info = parsed.get("info", {})
             token_amount = info.get("tokenAmount", {})
-            transfer_ok = transfer_ok or (
+            instruction_matches = (
                 info.get("mint") == intent["asset_mint"]
                 and info.get("authority") == intent["buyer"]
                 and token_amount.get("amount") == str(intent["amount_lamports"])
@@ -230,11 +230,19 @@ def _verified_token_transfer(transaction: dict, intent: sqlite3.Row) -> bool:
             source_after = source.get("postTokenBalances", (None, 0))[1]
             dest_before = destination.get("preTokenBalances", (None, 0))[1]
             dest_after = destination.get("postTokenBalances", (None, 0))[1]
-            debit_ok = debit_ok or (source_owner == intent["buyer"] and source_before - source_after == intent["amount_lamports"])
-            credit_ok = credit_ok or (destination_owner == intent["merchant"] and dest_after - dest_before == intent["amount_lamports"])
+            # Bind both balance deltas to the same parsed transfer instruction.
+            # Otherwise separate transfers in one transaction could satisfy the
+            # buyer-debit and merchant-credit checks independently.
+            verified_transfer = verified_transfer or (
+                instruction_matches
+                and source_owner == intent["buyer"]
+                and source_before - source_after == intent["amount_lamports"]
+                and destination_owner == intent["merchant"]
+                and dest_after - dest_before == intent["amount_lamports"]
+            )
         if instruction.get("program") == "spl-memo" and parsed == intent["memo"]:
             memo_ok = True
-    return transfer_ok and debit_ok and credit_ok and memo_ok
+    return verified_transfer and memo_ok
 
 
 def _inside_intent_window(transaction: dict, intent: sqlite3.Row) -> bool:
@@ -285,7 +293,7 @@ def _verified_token_refund(transaction: dict, intent: sqlite3.Row) -> bool:
             balances.setdefault(entry.get("accountIndex"), {})[field] = (
                 entry.get("owner"), int(amount))
 
-    transfer_ok = memo_ok = debit_ok = credit_ok = False
+    verified_transfer = memo_ok = False
     for instruction in message.get("instructions", []):
         parsed = instruction.get("parsed")
         if instruction.get("programId") == TOKEN_2022_PROGRAM:
@@ -293,7 +301,7 @@ def _verified_token_refund(transaction: dict, intent: sqlite3.Row) -> bool:
                 continue
             info = parsed.get("info", {})
             token_amount = info.get("tokenAmount", {})
-            transfer_ok = transfer_ok or (
+            instruction_matches = (
                 info.get("mint") == intent["asset_mint"]
                 and info.get("authority") == intent["merchant"]
                 and token_amount.get("amount") == str(intent["amount_lamports"])
@@ -312,15 +320,18 @@ def _verified_token_refund(transaction: dict, intent: sqlite3.Row) -> bool:
             source_after = source.get("postTokenBalances", (None, 0))[1]
             destination_before = destination.get("preTokenBalances", (None, 0))[1]
             destination_after = destination.get("postTokenBalances", (None, 0))[1]
-            debit_ok = debit_ok or (
-                source_owner == intent["merchant"]
-                and source_before - source_after == intent["amount_lamports"])
-            credit_ok = credit_ok or (
-                destination_owner == intent["buyer"]
-                and destination_after - destination_before == intent["amount_lamports"])
+            # As with payment verification, require the refund's source debit
+            # and buyer credit to belong to this exact transfer instruction.
+            verified_transfer = verified_transfer or (
+                instruction_matches
+                and source_owner == intent["merchant"]
+                and source_before - source_after == intent["amount_lamports"]
+                and destination_owner == intent["buyer"]
+                and destination_after - destination_before == intent["amount_lamports"]
+            )
         if instruction.get("program") == "spl-memo" and parsed == "REFUND:" + intent["id"]:
             memo_ok = True
-    return transfer_ok and debit_ok and credit_ok and memo_ok
+    return verified_transfer and memo_ok
 
 
 def claim_refund(db: sqlite3.Connection, intent_id: str) -> dict:
