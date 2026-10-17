@@ -4,6 +4,8 @@ on:
     paths:
       - '.github/workflows/exchange-evidence.yml'
       - 'scripts/verify_exchange_evidence.py'
+  schedule:
+    - cron: '29 */6 * * *'
   workflow_dispatch:
   push:
     branches: [main]

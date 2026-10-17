@@ -86,6 +86,25 @@ def gecko_pools():
     REPORT["limitations"].append("GeckoTerminal pools may differ from DexScreener; pool reserve is not necessarily executable liquidity.")
     return out
 
+def pumpfun_coin():
+    # Launchpad bonding-curve trading may not appear in DEX pool aggregators.
+    # A successful response is evidence only for fields actually returned.
+    urls=[
+        "https://frontend-api-v3.pump.fun/coins/"+MINT,
+        "https://frontend-api-v2.pump.fun/coins/"+MINT,
+        "https://frontend-api.pump.fun/coins/"+MINT
+    ]
+    failures=[]
+    for url in urls:
+        try:
+            j=fetch(url)
+            if not isinstance(j,dict): raise ValueError("Unexpected JSON shape")
+            keys=("mint","name","symbol","complete","usd_market_cap","market_cap","virtual_sol_reserves","virtual_token_reserves","real_sol_reserves","real_token_reserves","total_supply","created_timestamp","raydium_pool","king_of_the_hill_timestamp")
+            return {"source_url":url,"fields":{k:j[k] for k in keys if k in j}}
+        except Exception as e:
+            failures.append({"url":url,"error":str(e)[:180]})
+    raise RuntimeError("Pump.fun public API unavailable: "+json.dumps(failures))
+
 def website():
     url="https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/wallet-proof.html"
     req=urllib.request.Request(url,headers={"User-Agent":"MOSUL-ReadOnly-Verification/1.0"})
@@ -99,13 +118,15 @@ capture("largest_token_accounts",top_accounts)
 capture("creator_wallet_token_accounts",creator_tokens)
 capture("dex_pairs",dex_pairs)
 capture("gecko_pools",gecko_pools)
+capture("pumpfun_coin",pumpfun_coin)
 capture("signature_page_https",website)
 REPORT["limitations"].extend([
 "Explorer creator labels are not cryptographic evidence of legal project ownership.",
 "A wallet-control signature has been independently verified and published at docs/MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json; this job does not verify legal identity.",
 "Founder/team allocation, related-wallet clusters, locks, vesting and beneficial ownership cannot be inferred from the top-account list alone.",
 "Even if HTTPS page loads, Phantom iPhone signing and end-to-end UX require manual testing.",
-"No application is submitted by this workflow."
+"No application is submitted by this workflow.",
+"Pump.fun launchpad bonding-curve state must be checked separately from migrated DEX pools; unavailable APIs are not proof of zero trading."
 ])
 Path("exchange-evidence.json").write_text(json.dumps(REPORT,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 print(json.dumps({"timestamp_utc":REPORT["timestamp_utc"],
@@ -130,6 +151,7 @@ print("LISTING_EVIDENCE_SUMMARY="+json.dumps({
  "top20_are_not_beneficial_owners":True,
  "dex_pair_count":len(pairs),
  "gecko_pool_count":len(REPORT["sources"].get("gecko_pools",[])),
+ "pumpfun_coin":REPORT["sources"].get("pumpfun_coin"),
  "dex_pairs":[{"dex":p.get("dexId"),"pair":p.get("pairAddress"),"liquidity_usd":(p.get("liquidity") or {}).get("usd"),"volume_24h":(p.get("volume") or {}).get("h24"),"price_usd":p.get("priceUsd")} for p in pairs],
  "website":REPORT["sources"].get("signature_page_https"),
  "errors":REPORT["errors"]
