@@ -105,9 +105,13 @@ def main():
         payload = None
     post_id = accepted_post_id(response.status_code, payload, response.text)
     if post_id is None:
-        print("X publication deferred: the configured X API account has no credits. "
-              "No retry was attempted and this is not a code failure.")
-        return 0
+        print("X publication BLOCKED: the configured X API account has no credits. "
+              "No post was published. Add X API credits before retrying.", file=sys.stderr)
+        summary = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary:
+            with open(summary, "a", encoding="utf-8") as out:
+                out.write("## X post not published\\n\\nX API credits are exhausted. This job is marked failed to avoid a false green publication status.\\n")
+        return 2
     print(f"Published update {post_label} to X (post id {post_id}; {count}/280 characters).")
     return 0
 
