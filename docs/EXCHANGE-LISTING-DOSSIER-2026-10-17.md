@@ -16,6 +16,7 @@ Prepared 17 October 2026. **Draft, not submitted or approved.**
 MOSUL HERITAGE is an early-stage digital collectibles initiative inspired by the architecture and cultural heritage of Mosul, Iraq. The project is developing original AI-assisted artwork, authenticity records, auction functionality, NFT issuance, and a potential MOSUL-token payment flow. A public repository documents ongoing development and prototypes. Production sales, MOSUL payments and NFT delivery have not yet been independently demonstrated end-to-end.
 
 ## Material limitations and risk disclosures
+- The project owner has supplied the public wallet address `EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu`, matching the **creator address recorded in the repository's 12 Oct 2026 explorer snapshot**. This address match is not proof of present control; a cryptographically verifiable message signature is still required.
 - The link between the candidate mint and the project has **not yet been cryptographically proven**. A project-controlled wallet must sign and publish a statement binding the exact mint to the project.
 - Allocation, founder/treasury holdings, locks, vesting and token concentration have not been independently verified.
 - Current exchange listings, 24h volume, holder count, liquidity, market capitalization and depth are **not verified**. Never invent these metrics.
