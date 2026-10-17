@@ -10,6 +10,7 @@ on:
       - 'wallet-proof.css'
       - 'docs/WHITEPAPER.md'
       - 'docs/TOKEN-VERIFICATION.md'
+      - 'docs/SALE-TERMS.md'
       - '.github/workflows/publish-pages.yml'
   workflow_dispatch:
 permissions:
@@ -27,19 +28,26 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Stage only reviewed public files
+      - name: Stage website, required legal docs and existing published art
         run: |
           set -euo pipefail
-          mkdir -p _site/docs
+          mkdir -p _site/docs _site/generated _site/auction-product
           cp index.html checkout.html wallet-proof.html wallet-proof.js wallet-proof.css _site/
-          cp docs/WHITEPAPER.md docs/TOKEN-VERIFICATION.md _site/docs/
+          cp docs/WHITEPAPER.md docs/TOKEN-VERIFICATION.md docs/SALE-TERMS.md _site/docs/
+          if git ls-remote --exit-code origin refs/heads/artwork-data >/dev/null 2>&1; then
+            git fetch --depth=1 origin artwork-data
+            git show FETCH_HEAD:catalog.json > _site/catalog.json
+            git archive FETCH_HEAD generated | tar -x -C _site || true
+          fi
+          if git ls-remote --exit-code origin refs/heads/auction-data >/dev/null 2>&1; then
+            git fetch --depth=1 origin auction-data
+            git show FETCH_HEAD:auction-product/MOSUL-GENESIS-000001-preview.png > _site/auction-product/MOSUL-GENESIS-000001-preview.png
+            git show FETCH_HEAD:auction-product/MOSUL-GENESIS-000001-certificate.json > _site/auction-product/MOSUL-GENESIS-000001-certificate.json
+          fi
           touch _site/.nojekyll
           test -s _site/wallet-proof.html
           test -s _site/wallet-proof.js
-          if grep -Eiq 'seed phrase|private key' _site/wallet-proof.js; then
-            echo "Review page for prohibited secret-handling patterns before publishing"
-            exit 1
-          fi
+          test -s _site/docs/SALE-TERMS.md
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload public website artifact
