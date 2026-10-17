@@ -19,12 +19,10 @@ from solders.pubkey import Pubkey
 from solders.system_program import CreateAccountParams, create_account
 from solders.transaction import VersionedTransaction
 from spl.token.constants import ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID
-from spl.token.models import (
+from spl.token.instructions import (
     InitializeMintParams,
     MintToCheckedParams,
     TransferCheckedParams,
-)
-from spl.token.instructions import (
     create_associated_token_account,
     initialize_mint,
     mint_to_checked,
