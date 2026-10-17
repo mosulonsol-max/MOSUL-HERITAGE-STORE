@@ -37,8 +37,10 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cp exchange-evidence.json "$RUNNER_TEMP/exchange-evidence.json"
           git fetch origin exchange-evidence-data
           git switch -C exchange-evidence-data origin/exchange-evidence-data
+          cp "$RUNNER_TEMP/exchange-evidence.json" exchange-evidence.json
           git add exchange-evidence.json
           if ! git diff --cached --quiet; then
             git commit -m 'Update public Solana and DEX listing evidence'
