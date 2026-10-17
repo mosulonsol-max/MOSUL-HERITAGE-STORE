@@ -1,6 +1,39 @@
 {
   "items": [
     {
+      "id": "MH-20261017T204110Z-dfedd897",
+      "title": "Courtyard Light Study — 2026-10-17 20:00 UTC",
+      "prompt": "Create one original, high-quality digital artwork for a cultural collectibles preview. A quiet courtyard inspired by Mosul, geometric brickwork, warm limestone, late afternoon light, contemporary editorial composition. The scene is interpretive contemporary art, not a documentary photograph, verified reconstruction, or claim about an exact historical site. No words, letters, logos, watermarks, signatures, or invented historical details. Square image, refined color and texture. Variation key 2026-10-17T20 UTC; create a distinct composition.",
+      "model": "segmind/small-sd",
+      "model_revision": "728f8b598d7d305bd30c20cbdfbaa6ffa7eec9cc",
+      "model_license": "CreativeML Open RAIL-M",
+      "generation_compute": "github-hosted-cpu",
+      "generation_seed": 822259541,
+      "automated_quality_gate": {
+        "status": "passed",
+        "contrast": 63.59,
+        "sampled_colors": 10963
+      },
+      "category": "digital-art-one-of-one",
+      "created_at": "2026-10-17T20:41:10Z",
+      "image": "generated/MH-20261017T204110Z-dfedd897.png",
+      "sha256": "507e3308a32513782ccfa8f05f5a9dc556cf91beae6b25293c77807e22e142b4",
+      "classification": "AI-generated, heritage-inspired contemporary artwork; not historical evidence.",
+      "status": "PUBLIC PREVIEW — NOT FOR SALE",
+      "price_benchmark": {
+        "status": "unavailable",
+        "reason": "Comparable-sales source is not configured."
+      },
+      "watermark_status": "Watermarked public preview with a signed provenance record.",
+      "mint_status": "Not minted",
+      "provenance_signature": {
+        "algorithm": "Ed25519",
+        "public_key_b64": "HJvRYpI9wDUVqqPSTpoPx8WvdYq30Ceye2IFNyjfCTU=",
+        "signature_b64": "XD9wZmmr/WwKgYSihlIevP+lALhrBUiK02L+i2s18piRbEoY4yVz+jRaqal6C3BDRvjdMv7S6YlUH27WWgr/Bw==",
+        "scope": "Canonical JSON record excluding provenance_signature"
+      }
+    },
+    {
       "id": "MH-20261017T193724Z-14ec5855",
       "title": "Garden After Rain — 2026-10-17 19:00 UTC",
       "prompt": "Create one original, high-quality digital artwork for a cultural collectibles preview. A peaceful garden courtyard after rain, stone, water reflections and native greenery, Mosul-inspired contemporary art. The scene is interpretive contemporary art, not a documentary photograph, verified reconstruction, or claim about an exact historical site. No words, letters, logos, watermarks, signatures, or invented historical details. Square image, refined color and texture. Variation key 2026-10-17T19 UTC; create a distinct composition.",
