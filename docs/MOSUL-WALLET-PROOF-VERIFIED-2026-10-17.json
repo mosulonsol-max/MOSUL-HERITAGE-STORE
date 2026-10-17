@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "network": "solana-mainnet",
+  "scheme": "ed25519",
+  "encoding": "base58",
+  "publicKey": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
+  "message": "MOSUL HERITAGE — PUBLIC TOKEN ASSOCIATION STATEMENT\nDate: 2026-10-17\nNetwork: Solana Mainnet\nProject: MOSUL HERITAGE\nToken: MOSUL\nToken mint: 6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump\nSigning wallet: EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu\n\nI am authorized to represent MOSUL HERITAGE. I confirm that MOSUL HERITAGE publicly identifies the token mint above as its MOSUL token and that I control the signing wallet.\n\nThis statement is for project identity verification only. It does not authorize a payment, token transfer, exchange listing, or any financial transaction.",
+  "signature": "4gTqz3zeU2TDGnW2terLZt6CABqVL6uZbf2fAGVdyD7XfpUGpMa9eU3KwvpiupZ7h7dEEDc5iytQFvzs1j2xQNNm",
+  "verifiedLocally": true
+}
