@@ -23,6 +23,14 @@ MOSUL HERITAGE is an early-stage digital collectibles initiative inspired by the
 - Production website, live auction, payment and NFT delivery are **not verified as active**.
 - No guarantee of exchange listing, returns, liquidity, appreciation or revenue.
 
+## Applicant structure (owner confirmed 17 October 2026)
+- Application type: **Individual / natural person** (not a registered company application).
+- Applicant legal name: **pending exact match to government-issued identity document; supply privately to exchanges only**.
+- Applicant country of residence: **Iraq** (owner-supplied; verify against exchange eligibility requirements).
+- Applicant email and contact: verify directly in the application before submission.
+- Identity, residence, date of birth, government document and KYC data: **private exchange forms only; never publish in this repository**.
+- Project ownership and authority to apply: **must be substantiated**, including the wallet-signed project-to-mint statement.
+
 ## Items requiring owner action / private exchange review
 - [ ] Sign a project-to-mint statement using a project-controlled wallet and publish a verification record.
 - [ ] Provide applicant identity, entity status, KYC and team roles privately to each exchange.
