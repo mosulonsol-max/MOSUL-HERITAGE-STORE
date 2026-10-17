@@ -1,0 +1,27 @@
+name: MOSUL read-only exchange evidence
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/exchange-evidence.yml'
+      - 'scripts/verify_exchange_evidence.py'
+permissions:
+  contents: read
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect read-only live public evidence
+        run: python scripts/verify_exchange_evidence.py
+      - name: Store timestamped raw evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: mosul-exchange-evidence
+          path: exchange-evidence.json
+          retention-days: 14
