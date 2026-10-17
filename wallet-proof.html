@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; font-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>MOSUL HERITAGE — Wallet Message Verification</title>
+<link rel="stylesheet" href="wallet-proof.css">
+<script src="wallet-proof.js" defer></script>
+</head><body>
+<main>
+<p class="eyebrow">MOSUL HERITAGE / Solana</p>
+<h1>Wallet ownership statement</h1>
+<p>This page asks Phantom to sign a <strong>plain text message only</strong>. It does not create transactions, send funds, or request spending permissions. Only use this page when served from the official project domain after reviewing its code.</p>
+<section><h2>1. Review the exact message</h2><pre id="message"></pre></section>
+<section><h2>2. Connect &amp; sign</h2>
+<p>Open this page in Phantom's in-app browser on iPhone. Verify the address shown by Phantom matches the expected signer below.</p>
+<code id="expected">EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu</code>
+<div class="buttons"><button id="connect" type="button">Connect Phantom</button><button id="sign" type="button" disabled>Sign message (no transaction)</button></div>
+<p id="status" role="status" aria-live="polite">Not connected.</p></section>
+<section><h2>3. Local cryptographic verification</h2>
+<p>Only a valid Ed25519 signature from the expected public key will produce a verified result. No proof is transmitted to any server.</p>
+<textarea id="proof" rows="10" readonly aria-label="Signature proof output" placeholder="Verified signature proof will appear here."></textarea>
+<div class="buttons"><button id="copy" type="button" disabled>Copy verified proof</button></div>
+</section>
+<p class="warning">Never enter a seed phrase or private key. If Phantom asks you to approve a transaction or a transfer, cancel it. A signature proves wallet control, not legal ownership or exchange approval.</p>
+<p><a href="https://github.com/mosulonsol-max/MOSUL-HERITAGE-STORE">Inspect source on GitHub</a></p>
+</main>
+</body></html>
