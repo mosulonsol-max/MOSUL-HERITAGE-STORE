@@ -1,0 +1,51 @@
+name: Publish MOSUL public site and wallet proof
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'checkout.html'
+      - 'wallet-proof.html'
+      - 'wallet-proof.js'
+      - 'wallet-proof.css'
+      - 'docs/WHITEPAPER.md'
+      - 'docs/TOKEN-VERIFICATION.md'
+      - '.github/workflows/publish-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: mosul-public-pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage only reviewed public files
+        run: |
+          set -euo pipefail
+          mkdir -p _site/docs
+          cp index.html checkout.html wallet-proof.html wallet-proof.js wallet-proof.css _site/
+          cp docs/WHITEPAPER.md docs/TOKEN-VERIFICATION.md _site/docs/
+          touch _site/.nojekyll
+          test -s _site/wallet-proof.html
+          test -s _site/wallet-proof.js
+          if grep -Eiq 'seed phrase|private key' _site/wallet-proof.js; then
+            echo "Review page for prohibited secret-handling patterns before publishing"
+            exit 1
+          fi
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload public website artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy public website
+        id: deployment
+        uses: actions/deploy-pages@v4
