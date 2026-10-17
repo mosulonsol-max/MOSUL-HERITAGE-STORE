@@ -51,3 +51,7 @@ Official form: https://www.okx.com/token-listing-apply
 ## Evidence snapshot
 
 Live machine-collected JSON: https://github.com/mosulonsol-max/MOSUL-HERITAGE-STORE/blob/exchange-evidence-data/exchange-evidence.json . Snapshot 2026-10-17T19:37:08Z. The top-token-accounts query returned HTTP 429; no concentration conclusion can be drawn. DexScreener returned no pools. Do not present unverified liquidity or market metrics to exchanges.
+
+## Additional verified market evidence — 2026-10-17T19:42:05Z
+
+Source: GitHub Actions run https://github.com/mosulonsol-max/MOSUL-HERITAGE-STORE/actions/runs/39063579479/artifacts/12112297878 (raw API snapshot). GeckoTerminal Solana token-pools endpoint returned one MOSUL/SOL pool, address `FZQEzikp7rkjaggBkeM4uW8RPT2seRBWKWboQLGW1VZq`, created `2026-10-10T21:32:52Z`, reported pool reserve **$2,372.0872**, reference token price **$0.00000312730565**, and reported 24h pool volume **$0.0**. This is a low-liquidity snapshot, not guaranteed executable depth or complete all-venue volume. DexScreener returned zero pools for this mint in the same snapshot. Largest-token-accounts RPC still failed (429/403/400); top holder concentration **unknown, not 0%**. Pump.fun frontend API returned 404/403, so bonding curve status remains unverified. Never represent the missing results as zero holdings or zero launchpad activity.
