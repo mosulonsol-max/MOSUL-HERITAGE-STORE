@@ -218,6 +218,7 @@ class Handler(BaseHTTPRequestHandler):
                     result = create_winner_order_challenge(
                         db, AUCTION, PRODUCT.id, MERCHANT_WALLET,
                         str(body["idempotency_key"]), accepted,
+                        str(body["buyer_wallet"]),
                     )
                 elif self.path == "/orders" and AUCTION:
                     accepted = str(body["accepted_terms_sha256"])

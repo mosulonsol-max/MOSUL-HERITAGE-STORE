@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import binascii
 import datetime as dt
+import hmac
 import re
 import secrets
 import sqlite3
@@ -284,6 +285,7 @@ def payable_winner(db: sqlite3.Connection, cfg: AuctionConfig,
 def create_winner_order_challenge(db: sqlite3.Connection, cfg: AuctionConfig,
                                   product_id: str, merchant_wallet: str,
                                   idempotency_key: str, terms_sha256: str,
+                                  buyer_wallet: str,
                                   now: dt.datetime | None = None) -> dict:
     """Request fresh wallet consent before reserving a winning bidder's order."""
     init_auction(db)
@@ -292,9 +294,12 @@ def create_winner_order_challenge(db: sqlite3.Connection, cfg: AuctionConfig,
     if not re.fullmatch(r"[0-9a-f]{64}", terms_sha256 or ""):
         raise ValueError("invalid terms hash")
     merchant_wallet = validate_pubkey(merchant_wallet)
+    buyer_wallet = validate_pubkey(buyer_wallet)
     winner, _ = payable_winner(db, cfg, product_id, now)
     if not winner:
         raise ValueError("auction ended without a valid bid")
+    if not hmac.compare_digest(buyer_wallet, winner["bidder_wallet"]):
+        raise PermissionError("connect the wallet that signed the winning bid")
     now = now or utc_now()
     expires = now.astimezone(dt.timezone.utc).replace(microsecond=0) + dt.timedelta(minutes=5)
     challenge_id = secrets.token_urlsafe(24)
@@ -321,7 +326,7 @@ def create_winner_order_challenge(db: sqlite3.Connection, cfg: AuctionConfig,
              message, utc_iso(expires)),
         )
     return {"challenge_id": challenge_id, "message": message,
-            "expires_at": utc_iso(expires), "bidder_wallet": winner["bidder_wallet"]}
+            "expires_at": utc_iso(expires)}
 
 
 def consume_winner_order_challenge(db: sqlite3.Connection, cfg: AuctionConfig,

@@ -157,38 +157,53 @@ def website():
         data=resp.read(300000).decode("utf-8","replace")
         return {"url":resp.geturl(),"http_status":resp.status,
                 "expected_page_present":("Wallet ownership statement" in data and "wallet-proof.js" in data)}
-capture("token_supply",token_supply)
-capture("mint_account",mint_account)
-capture("largest_token_accounts",top_accounts)
-capture("creator_wallet_token_accounts",creator_tokens)
-capture("dex_pairs",dex_pairs)
-capture("gecko_pools",gecko_pools)
-capture("pumpfun_coin",pumpfun_coin)
-capture("gecko_token_info",gecko_token_info)
-capture("rugcheck_report",rugcheck_report)
-capture("signature_page_https",website)
-REPORT["limitations"].extend([
-"Explorer creator labels are not cryptographic evidence of legal project ownership.",
-"A wallet-control signature has been independently verified and published at docs/MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json; this job does not verify legal identity.",
-"Founder/team allocation, related-wallet clusters, locks, vesting and beneficial ownership cannot be inferred from the top-account list alone.",
-"Even if HTTPS page loads, Phantom iPhone signing and end-to-end UX require manual testing.",
-"No application is submitted by this workflow.",
-"GeckoTerminal public API is beta and rate-limited; absent or null fields remain unverified rather than being inferred.",
-"GeckoTerminal holder statistics may be null or incomplete; token-account concentration still requires a working Solana RPC or a documented holder-data provider.",
-"RugCheck is a third-party indexed report used only as supplemental holder and market evidence; its top token accounts are not beneficial owners and must be corroborated against finalized Solana RPC before exchange submission.",
-"Pump.fun launchpad state is reported from GeckoTerminal’s token endpoint; verify material trading or migration claims against on-chain state."
-])
-def completeness_status():
-    sources=REPORT["sources"]
+def reconcile_holder_distribution(sources):
+    """Compare exact raw balances by token-account address, independent of rank."""
+    indexed = (sources.get("rugcheck_report") or {}).get("top_token_accounts")
+    finalized = sources.get("largest_token_accounts")
+    if not indexed or not finalized:
+        return {"status": "unavailable", "note": "Both nonempty account lists are required."}
+
+    def balances(accounts):
+        if not isinstance(accounts, list):
+            raise ValueError("account list is invalid")
+        result = {}
+        for account in accounts:
+            if not isinstance(account, dict):
+                raise ValueError("account record is invalid")
+            address, amount = account.get("address"), account.get("amount")
+            if (not isinstance(address, str) or not address or address in result
+                    or isinstance(amount, bool)
+                    or not isinstance(amount, (str, int))
+                    or not str(amount).isascii() or not str(amount).isdecimal()):
+                raise ValueError("account address or raw balance is invalid")
+            result[address] = int(amount)
+        return result
+
+    try:
+        indexed_balances = balances(indexed)
+        finalized_balances = balances(finalized)
+    except ValueError as error:
+        return {"status": "invalid", "note": str(error)}
+    differences = sorted(address for address in indexed_balances.keys() | finalized_balances.keys()
+                         if indexed_balances.get(address) != finalized_balances.get(address))
+    return {"status": "conflict" if differences else "matched",
+            "indexed_account_count": len(indexed_balances),
+            "finalized_account_count": len(finalized_balances),
+            "differing_accounts": differences,
+            "note": "Exact token-account addresses and raw balances compared at collection; not beneficial-owner identities."}
+
+
+def completeness_status(report):
+    sources=report["sources"]
     missing=[]
     rug=(sources.get("rugcheck_report") or {})
     top_accounts=rug.get("top_token_accounts") or []
     if rug.get("reported_total_holders") is None or not top_accounts:
         missing.append("independent holder count and token-account distribution")
-    if "largest_token_accounts" not in sources and top_accounts:
-        missing.append("finalized Solana RPC corroboration of indexed holder distribution")
-    elif "largest_token_accounts" not in sources:
-        missing.append("largest token accounts and token-account concentration")
+    agreement = reconcile_holder_distribution(sources)
+    if agreement["status"] != "matched":
+        missing.append("finalized Solana RPC reconciliation of indexed holder distribution")
     launchpad=((sources.get("pumpfun_coin") or {}).get("fields") or {}).get("launchpad_details")
     if not isinstance(launchpad,dict) or "completed" not in launchpad:
         missing.append("Pump.fun graduation and migration state")
@@ -204,41 +219,69 @@ def completeness_status():
     return {
         "status":"partial" if missing else "complete",
         "missing_fields":missing,
+        "holder_distribution_reconciliation":agreement,
         "observed_volume_24h_usd":market_fields.get("volume_usd",{}).get("h24"),
-        "note":"A measured zero volume is reported as zero; it is not treated as missing data."
+        "note":"A measured zero volume is reported as zero; it is not treated as missing data. Completeness describes collected fields, not exchange approval or beneficial ownership."
     }
 
-REPORT["completeness"]=completeness_status()
-Path("exchange-evidence.json").write_text(json.dumps(REPORT,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-print(json.dumps({"timestamp_utc":REPORT["timestamp_utc"],
-    "sources_successful":list(REPORT["sources"]),
-    "errors":REPORT["errors"],
-    "completeness":REPORT["completeness"],
-    "pairs_found":len(REPORT["sources"].get("dex_pairs",[])),
-    "https_page":REPORT["sources"].get("signature_page_https"),
-    "report_file":"exchange-evidence.json"},indent=2))
+def main():
+    capture("token_supply",token_supply)
+    capture("mint_account",mint_account)
+    capture("largest_token_accounts",top_accounts)
+    capture("creator_wallet_token_accounts",creator_tokens)
+    capture("dex_pairs",dex_pairs)
+    capture("gecko_pools",gecko_pools)
+    capture("pumpfun_coin",pumpfun_coin)
+    capture("gecko_token_info",gecko_token_info)
+    capture("rugcheck_report",rugcheck_report)
+    capture("signature_page_https",website)
+    REPORT["limitations"].extend([
+    "Explorer creator labels are not cryptographic evidence of legal project ownership.",
+    "A wallet-control signature has been independently verified and published at docs/MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json; this job does not verify legal identity.",
+    "Founder/team allocation, related-wallet clusters, locks, vesting and beneficial ownership cannot be inferred from the top-account list alone.",
+    "Even if HTTPS page loads, Phantom iPhone signing and end-to-end UX require manual testing.",
+    "No application is submitted by this workflow.",
+    "GeckoTerminal public API is beta and rate-limited; absent or null fields remain unverified rather than being inferred.",
+    "GeckoTerminal holder statistics may be null or incomplete; token-account concentration still requires a working Solana RPC or a documented holder-data provider.",
+    "RugCheck is a third-party indexed report used only as supplemental holder and market evidence; its top token accounts are not beneficial owners and must be corroborated against finalized Solana RPC before exchange submission.",
+    "Pump.fun launchpad state is reported from GeckoTerminal’s token endpoint; verify material trading or migration claims against on-chain state."
+    ])
+    REPORT["completeness"]=completeness_status(REPORT)
+    Path("exchange-evidence.json").write_text(json.dumps(REPORT,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    print(json.dumps({"timestamp_utc":REPORT["timestamp_utc"],
+        "sources_successful":list(REPORT["sources"]),
+        "errors":REPORT["errors"],
+        "completeness":REPORT["completeness"],
+        "pairs_found":len(REPORT["sources"].get("dex_pairs",[])),
+        "https_page":REPORT["sources"].get("signature_page_https"),
+        "report_file":"exchange-evidence.json"},indent=2))
 
-# Actionable exchange diligence summary in job logs; raw source data remains in artifact.
-supply=REPORT["sources"].get("token_supply",{}).get("value",{})
-accounts=REPORT["sources"].get("largest_token_accounts",[])
-total=int(supply.get("amount") or 0)
-top20=sum(int(account.get("amount") or 0) for account in accounts)
-pairs=REPORT["sources"].get("dex_pairs",[])
-print("LISTING_EVIDENCE_SUMMARY="+json.dumps({
- "timestamp_utc":REPORT["timestamp_utc"],
- "mint":MINT,
- "supply":supply.get("uiAmountString"),
- "decimals":supply.get("decimals"),
- "top20_token_account_share_pct":round(top20/total*100,4) if total and "largest_token_accounts" in REPORT["sources"] else None,
- "top20_are_not_beneficial_owners":True,
- "largest_accounts_status":"verified" if "largest_token_accounts" in REPORT["sources"] else "unavailable",
- "dex_pair_count":len(pairs),
- "gecko_pool_count":len(REPORT["sources"].get("gecko_pools",[])),
- "gecko_pools":REPORT["sources"].get("gecko_pools"),
- "pumpfun_coin":REPORT["sources"].get("pumpfun_coin"),
- "gecko_token_info":REPORT["sources"].get("gecko_token_info"),
- "rugcheck_report":REPORT["sources"].get("rugcheck_report"),
- "dex_pairs":[{"dex":p.get("dexId"),"pair":p.get("pairAddress"),"liquidity_usd":(p.get("liquidity") or {}).get("usd"),"volume_24h":(p.get("volume") or {}).get("h24"),"price_usd":p.get("priceUsd")} for p in pairs],
- "website":REPORT["sources"].get("signature_page_https"),
- "errors":REPORT["errors"]
-},ensure_ascii=False))
+    # Actionable exchange diligence summary in job logs; raw source data remains in artifact.
+    supply=REPORT["sources"].get("token_supply",{}).get("value",{})
+    accounts=REPORT["sources"].get("largest_token_accounts",[])
+    total=int(supply.get("amount") or 0)
+    top20=sum(int(account.get("amount") or 0) for account in accounts)
+    pairs=REPORT["sources"].get("dex_pairs",[])
+    print("LISTING_EVIDENCE_SUMMARY="+json.dumps({
+     "timestamp_utc":REPORT["timestamp_utc"],
+     "mint":MINT,
+     "supply":supply.get("uiAmountString"),
+     "decimals":supply.get("decimals"),
+     "top20_token_account_share_pct":round(top20/total*100,4) if total and "largest_token_accounts" in REPORT["sources"] else None,
+     "top20_are_not_beneficial_owners":True,
+     "largest_accounts_status":"finalized_rpc_observed" if accounts else "unavailable",
+     "holder_distribution_reconciliation":REPORT["completeness"]["holder_distribution_reconciliation"],
+     "dex_pair_count":len(pairs),
+     "gecko_pool_count":len(REPORT["sources"].get("gecko_pools",[])),
+     "gecko_pools":REPORT["sources"].get("gecko_pools"),
+     "pumpfun_coin":REPORT["sources"].get("pumpfun_coin"),
+     "gecko_token_info":REPORT["sources"].get("gecko_token_info"),
+     "rugcheck_report":REPORT["sources"].get("rugcheck_report"),
+     "dex_pairs":[{"dex":p.get("dexId"),"pair":p.get("pairAddress"),"liquidity_usd":(p.get("liquidity") or {}).get("usd"),"volume_24h":(p.get("volume") or {}).get("h24"),"price_usd":p.get("priceUsd")} for p in pairs],
+     "website":REPORT["sources"].get("signature_page_https"),
+     "errors":REPORT["errors"]
+    },ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

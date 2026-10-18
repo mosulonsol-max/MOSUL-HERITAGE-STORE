@@ -10,7 +10,7 @@
 | Project declaration | Ed25519 signature verifies wallet `EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu` over exact mint/network/project statement | [Proof JSON](MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json). Does not prove legal identity or ownership of other wallets. |
 | Public site | GitHub Pages home, checkout preview and wallet-proof pages returned HTTP 200 on 18 Oct | [Public preview](https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/). Reachability is not a live sale test. |
 | Artwork previews | Hourly generation, validation, save and Pages deploy jobs succeeded on 18 Oct | [GitHub Actions run](https://github.com/mosulonsol-max/MOSUL-HERITAGE-STORE/actions/runs/39128799047). These are watermarked previews, not commercial releases. |
-| Sale software | Local unit suites: 28 sale, 14 repository, 13 AI and 6 Devnet payment tests passed (61 total). Winner-order requests require fresh wallet signatures; settlement now requires the exact on-chain order memo. Forgery, replay, lost-response recovery and missing-memo paths have dedicated tests. A parked local HTTP smoke test returned `sales_disabled`, `auction_ready=false`, and HTTP 503 for `POST /orders`. | Tests use synthetic transactions and do not prove Mainnet settlement, private delivery or production security. |
+| Sale software | Unit suites: 29 sale, 17 repository, 13 AI and 6 Devnet payment tests (65 total). Winner-order challenges require the caller's nominated wallet to match the winner before disclosing the signing message; orders require fresh wallet signatures and settlement requires the exact on-chain order memo. Forgery, replay, lost-response recovery, winner privacy and missing-memo paths have dedicated tests. A parked local HTTP smoke test returned `sales_disabled`, `auction_ready=false`, and HTTP 503 for `POST /orders`. | Tests use synthetic transactions and do not prove Mainnet settlement, private delivery or production security. Review and check results are tracked in [PR #69](https://github.com/mosulonsol-max/MOSUL-HERITAGE-STORE/pull/69). |
 
 ## Blocking gates
 
@@ -23,6 +23,8 @@
 | NFT and fulfillment | No verified MOSUL HERITAGE NFT mint/asset address; no sale delivery demonstrated. | Owner-approved asset standard, metadata, rights, buyer license and mint transaction; independent asset verification and end-to-end buyer delivery test before claims of NFT functionality. |
 | X publication | Most recently inspected X workflow failed because configured X API account had no credits; job explicitly reported no post published. | Owner adds X API credits and reruns/observes successful publication if automatic X posting is required. [Failed run](https://github.com/mosulonsol-max/MOSUL-HERITAGE-STORE/actions/runs/39087802082). |
 | Exchange applications | No official acknowledgement/reference was retained for OKX or MEXC in this repository. Earlier OKX success-screen claim remains unresolved. | Reconcile official account/form record before another OKX submission; use [OKX](https://www.okx.com/token-listing-apply) and [MEXC](https://www.mexc.com/token-listing-apply) pages only. Preserve exact receipt, date and reference if issued. [Draft dossier](EXCHANGE-LISTING-DOSSIER-2026-10-17.md). |
+
+The evidence collector now compares the indexed and finalized-RPC token-account addresses and exact raw balances. Missing, empty, malformed or conflicting lists keep completeness `partial`; a successful collection workflow does not itself imply complete listing evidence.
 
 ## Activation order
 

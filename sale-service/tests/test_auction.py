@@ -117,9 +117,9 @@ class AuctionTests(unittest.TestCase):
         closed = CFG.ends_at + dt.timedelta(seconds=1)
         winner = winning_bid(self.db, CFG, PRODUCT.id, closed)
         challenge = create_winner_order_challenge(
-            self.db, CFG, PRODUCT.id, MERCHANT, "winner-order-123", TERMS, closed,
+            self.db, CFG, PRODUCT.id, MERCHANT, "winner-order-123", TERMS, winner_wallet, closed,
         )
-        self.assertEqual(challenge["bidder_wallet"], winner_wallet)
+        self.assertIn(winner_wallet, challenge["message"])
         forged = base64.b64encode(attacker_key.sign(challenge["message"].encode())).decode()
         with self.assertRaisesRegex(PermissionError, "signature did not verify"):
             consume_winner_order_challenge(
@@ -152,7 +152,7 @@ class AuctionTests(unittest.TestCase):
         closed = CFG.ends_at + dt.timedelta(seconds=1)
         winner = winning_bid(self.db, CFG, PRODUCT.id, closed)
         challenge = create_winner_order_challenge(
-            self.db, CFG, PRODUCT.id, MERCHANT, "winner-order-123", TERMS, closed,
+            self.db, CFG, PRODUCT.id, MERCHANT, "winner-order-123", TERMS, winner_wallet, closed,
         )
         signed = base64.b64encode(winner_key.sign(challenge["message"].encode())).decode()
         with self.assertRaisesRegex(PermissionError, "expired"):
@@ -180,7 +180,7 @@ class AuctionTests(unittest.TestCase):
         winner, active = payable_winner(self.db, cfg, PRODUCT.id, closed)
         self.assertEqual(active["id"], order["id"])
         challenge = create_winner_order_challenge(
-            self.db, cfg, PRODUCT.id, MERCHANT, "winner-order-recovery", TERMS, closed,
+            self.db, cfg, PRODUCT.id, MERCHANT, "winner-order-recovery", TERMS, wallet, closed,
         )
         signed = base64.b64encode(key.sign(challenge["message"].encode())).decode()
         consume_winner_order_challenge(
@@ -200,6 +200,22 @@ class AuctionTests(unittest.TestCase):
                 auction_bid_id=winner["id"], merchant_wallet=MERCHANT,
                 product=PRODUCT,
             )
+
+    def test_other_wallet_cannot_discover_winner_or_create_challenge(self):
+        key, wallet = self.key()
+        _, other_wallet = self.key()
+        self.bid(key, wallet, "50")
+        closed = CFG.ends_at + dt.timedelta(seconds=1)
+        for nominated in (other_wallet, ""):
+            with self.subTest(wallet=nominated):
+                with self.assertRaises((ValueError, PermissionError)) as rejected:
+                    create_winner_order_challenge(
+                        self.db, CFG, PRODUCT.id, MERCHANT, "attacker-order-123",
+                        TERMS, nominated, closed,
+                    )
+                self.assertNotIn(wallet, str(rejected.exception))
+        count = self.db.execute("SELECT COUNT(*) FROM winner_order_challenges").fetchone()[0]
+        self.assertEqual(count, 0)
 
 
 if __name__ == "__main__":
