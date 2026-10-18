@@ -89,23 +89,26 @@ def gecko_pools():
     return out
 
 def pumpfun_coin():
-    # Launchpad bonding-curve trading may not appear in DEX pool aggregators.
-    # A successful response is evidence only for fields actually returned.
-    urls=[
-        "https://frontend-api-v3.pump.fun/coins/"+MINT,
-        "https://frontend-api-v2.pump.fun/coins/"+MINT,
-        "https://frontend-api.pump.fun/coins/"+MINT
-    ]
-    failures=[]
-    for url in urls:
-        try:
-            j=fetch(url)
-            if not isinstance(j,dict): raise ValueError("Unexpected JSON shape")
-            keys=("mint","name","symbol","complete","usd_market_cap","market_cap","virtual_sol_reserves","virtual_token_reserves","real_sol_reserves","real_token_reserves","total_supply","created_timestamp","raydium_pool","king_of_the_hill_timestamp")
-            return {"source_url":url,"fields":{k:j[k] for k in keys if k in j}}
-        except Exception as e:
-            failures.append({"url":url,"error":str(e)[:180]})
-    raise RuntimeError("Pump.fun public API unavailable: "+json.dumps(failures))
+    # GeckoTerminal's documented token endpoint reports Pump.fun launchpad details
+    # for bonding-curve tokens and avoids undocumented frontend-api endpoints.
+    url="https://api.geckoterminal.com/api/v2/networks/solana/tokens/"+MINT
+    j=fetch(url)
+    data=j.get("data") or {}
+    fields=data.get("attributes") or {}
+    if fields.get("address") != MINT:
+        raise ValueError("GeckoTerminal token response did not match the configured mint")
+    return {"provider":"GeckoTerminal public API","source_url":url,"fields":fields}
+
+def gecko_token_info():
+    # Additional metadata, security signals, developer holdings, and optional
+    # holder statistics. Null fields stay null; this is not a substitute for RPC.
+    url="https://api.geckoterminal.com/api/v2/networks/solana/tokens/"+MINT+"/info"
+    j=fetch(url)
+    data=j.get("data") or {}
+    fields=data.get("attributes") or {}
+    if fields.get("address") != MINT:
+        raise ValueError("GeckoTerminal token-info response did not match the configured mint")
+    return {"provider":"GeckoTerminal public API","source_url":url,"fields":fields}
 
 def website():
     url="https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/wallet-proof.html"
@@ -121,6 +124,7 @@ capture("creator_wallet_token_accounts",creator_tokens)
 capture("dex_pairs",dex_pairs)
 capture("gecko_pools",gecko_pools)
 capture("pumpfun_coin",pumpfun_coin)
+capture("gecko_token_info",gecko_token_info)
 capture("signature_page_https",website)
 REPORT["limitations"].extend([
 "Explorer creator labels are not cryptographic evidence of legal project ownership.",
@@ -128,12 +132,44 @@ REPORT["limitations"].extend([
 "Founder/team allocation, related-wallet clusters, locks, vesting and beneficial ownership cannot be inferred from the top-account list alone.",
 "Even if HTTPS page loads, Phantom iPhone signing and end-to-end UX require manual testing.",
 "No application is submitted by this workflow.",
-"Pump.fun launchpad bonding-curve state must be checked separately from migrated DEX pools; unavailable APIs are not proof of zero trading."
+"GeckoTerminal public API is beta and rate-limited; absent or null fields remain unverified rather than being inferred.",
+"GeckoTerminal holder statistics may be null or incomplete; token-account concentration still requires a working Solana RPC or a documented holder-data provider.",
+"Pump.fun launchpad state is reported from GeckoTerminal’s token endpoint; verify material trading or migration claims against on-chain state."
 ])
+def completeness_status():
+    sources=REPORT["sources"]
+    missing=[]
+    if "largest_token_accounts" not in sources:
+        missing.append("largest token accounts and token-account concentration")
+    info=(sources.get("gecko_token_info") or {}).get("fields") or {}
+    holders=info.get("holders") or {}
+    if holders.get("count") is None or holders.get("distribution_percentage") is None:
+        missing.append("holder count and holder distribution")
+    launchpad=((sources.get("pumpfun_coin") or {}).get("fields") or {}).get("launchpad_details")
+    if not isinstance(launchpad,dict) or "completed" not in launchpad:
+        missing.append("Pump.fun graduation and migration state")
+    dex_pairs_found=bool(sources.get("dex_pairs"))
+    gecko_pools_found=bool(sources.get("gecko_pools"))
+    if not dex_pairs_found and not gecko_pools_found:
+        missing.append("independently identified DEX pool")
+    market_fields=(sources.get("pumpfun_coin") or {}).get("fields") or {}
+    if market_fields.get("price_usd") is None and not any(
+        pool.get("base_token_price_usd") is not None for pool in sources.get("gecko_pools",[])
+    ):
+        missing.append("current pool price")
+    return {
+        "status":"partial" if missing else "complete",
+        "missing_fields":missing,
+        "observed_volume_24h_usd":market_fields.get("volume_usd",{}).get("h24"),
+        "note":"A measured zero volume is reported as zero; it is not treated as missing data."
+    }
+
+REPORT["completeness"]=completeness_status()
 Path("exchange-evidence.json").write_text(json.dumps(REPORT,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 print(json.dumps({"timestamp_utc":REPORT["timestamp_utc"],
     "sources_successful":list(REPORT["sources"]),
     "errors":REPORT["errors"],
+    "completeness":REPORT["completeness"],
     "pairs_found":len(REPORT["sources"].get("dex_pairs",[])),
     "https_page":REPORT["sources"].get("signature_page_https"),
     "report_file":"exchange-evidence.json"},indent=2))
@@ -156,6 +192,7 @@ print("LISTING_EVIDENCE_SUMMARY="+json.dumps({
  "gecko_pool_count":len(REPORT["sources"].get("gecko_pools",[])),
  "gecko_pools":REPORT["sources"].get("gecko_pools"),
  "pumpfun_coin":REPORT["sources"].get("pumpfun_coin"),
+ "gecko_token_info":REPORT["sources"].get("gecko_token_info"),
  "dex_pairs":[{"dex":p.get("dexId"),"pair":p.get("pairAddress"),"liquidity_usd":(p.get("liquidity") or {}).get("usd"),"volume_24h":(p.get("volume") or {}).get("h24"),"price_usd":p.get("priceUsd")} for p in pairs],
  "website":REPORT["sources"].get("signature_page_https"),
  "errors":REPORT["errors"]
