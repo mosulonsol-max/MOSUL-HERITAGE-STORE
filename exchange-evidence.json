@@ -1,12 +1,12 @@
 {
-  "timestamp_utc": "2026-10-17T19:37:08.032439+00:00",
+  "timestamp_utc": "2026-10-18T01:15:40.052524+00:00",
   "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
   "creator_wallet": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
   "sources": {
     "token_supply": {
       "context": {
         "apiVersion": "4.3.0",
-        "slot": 458154954
+        "slot": 458248565
       },
       "value": {
         "amount": "1000000000000000",
@@ -58,7 +58,7 @@
     },
     "creator_wallet_token_accounts": {
       "context": {
-        "slot": 458154958,
+        "slot": 458248599,
         "apiVersion": "4.3.0-beta.2"
       },
       "value": [
@@ -99,6 +99,24 @@
       ]
     },
     "dex_pairs": [],
+    "gecko_pools": [
+      {
+        "pool_id": "solana_FZQEzikp7rkjaggBkeM4uW8RPT2seRBWKWboQLGW1VZq",
+        "address": "FZQEzikp7rkjaggBkeM4uW8RPT2seRBWKWboQLGW1VZq",
+        "name": "MOSUL / SOL",
+        "reserve_usd": "2372.0872",
+        "volume_usd": {
+          "m5": "0.0",
+          "m15": "0.0",
+          "m30": "0.0",
+          "h1": "0.0",
+          "h6": "0.0",
+          "h24": "0.0"
+        },
+        "base_token_price_usd": "0.00000312730565",
+        "pool_created_at": "2026-10-10T21:32:52Z"
+      }
+    ],
     "signature_page_https": {
       "url": "https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/wallet-proof.html",
       "http_status": 200,
@@ -107,16 +125,32 @@
   },
   "errors": [
     {
+      "source": "top_accounts_fallback",
+      "endpoint": "https://solana-rpc.publicnode.com",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "source": "top_accounts_fallback",
+      "endpoint": "https://solana.drpc.org",
+      "error": "HTTP Error 400: Bad Request"
+    },
+    {
       "source": "largest_token_accounts",
-      "error": "HTTP Error 429: Too Many Requests"
+      "error": "All RPC providers failed; initial: HTTP Error 429: Too Many Requests"
+    },
+    {
+      "source": "pumpfun_coin",
+      "error": "Pump.fun public API unavailable: [{\"url\": \"https://frontend-api-v3.pump.fun/coins/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump\", \"error\": \"HTTP Error 404: Not Found\"}, {\"url\": \"https://frontend-api-v2.pump.fun/coins/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump\", \"error\": \"HTTP Error 403: Forbidden\"}, {\"url\": \"https://frontend-api.pump.fun/coins/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump\", \"error"
     }
   ],
   "limitations": [
     "DEX Screener liquidity and 24h volume are per-pool estimates and may not cover all venues. Do not sum duplicate pools or confuse FDV with market cap.",
+    "GeckoTerminal pools may differ from DexScreener; pool reserve is not necessarily executable liquidity.",
     "Explorer creator labels are not cryptographic evidence of legal project ownership.",
     "A wallet-control signature has been independently verified and published at docs/MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json; this job does not verify legal identity.",
     "Founder/team allocation, related-wallet clusters, locks, vesting and beneficial ownership cannot be inferred from the top-account list alone.",
     "Even if HTTPS page loads, Phantom iPhone signing and end-to-end UX require manual testing.",
-    "No application is submitted by this workflow."
+    "No application is submitted by this workflow.",
+    "Pump.fun launchpad bonding-curve state must be checked separately from migrated DEX pools; unavailable APIs are not proof of zero trading."
   ]
 }
