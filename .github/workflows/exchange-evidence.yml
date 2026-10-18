@@ -38,6 +38,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           cp exchange-evidence.json "$RUNNER_TEMP/exchange-evidence.json"
+          # The collector creates this untracked file in the main checkout.
+          # Remove it after preserving the artifact so switching to the data branch is safe.
+          rm -- exchange-evidence.json
           git fetch origin exchange-evidence-data
           git switch -C exchange-evidence-data origin/exchange-evidence-data
           cp "$RUNNER_TEMP/exchange-evidence.json" exchange-evidence.json
