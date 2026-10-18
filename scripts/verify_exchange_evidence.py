@@ -5,9 +5,11 @@ from pathlib import Path
 
 MINT="6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump"
 CREATOR="EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu"
-RPC=os.environ.get("SOLANA_RPC_URL","https://api.mainnet-beta.solana.com")
+RPC=os.environ.get("SOLANA_RPC_URL","").strip() or "https://api.mainnet-beta.solana.com"
 REPORT={"timestamp_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "mint":MINT,"creator_wallet":CREATOR,"sources":{},"errors":[],"limitations":[]}
+if not os.environ.get("SOLANA_RPC_URL","").strip():
+    REPORT["limitations"].append("SOLANA_RPC_URL secret is not configured; using the shared public Solana RPC, which may return HTTP 403/429.")
 
 def fetch(url,payload=None):
     body=None if payload is None else json.dumps(payload).encode()
