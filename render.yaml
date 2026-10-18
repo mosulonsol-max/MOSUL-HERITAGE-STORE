@@ -31,19 +31,29 @@ services:
         generateValue: true
       - key: SALE_ADMIN_TOKEN
         generateValue: true
+      # Set the receiving wallet and signed seller terms only in Render's
+      # private environment settings after verifying them. Never commit them.
       - key: SALES_MERCHANT_WALLET
-        value: EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu
+        sync: false
       - key: SELLER_LEGAL_NAME
-        value: Ahmed Nabeel
+        sync: false
       - key: SELLER_TRADE_NAME
-        value: MOSUL HERITAGE STORE
+        sync: false
       - key: SELLER_COUNTRY
-        value: Iraq
+        sync: false
+      - key: SELLER_ADDRESS
+        sync: false
       - key: SELLER_SUPPORT_EMAIL
         value: mosulonsol@gmail.com
       - key: SELLER_TERMS_SIGNED_AT
-        value: 2026-10-13T16:21:19.178Z
+        sync: false
       - key: SELLER_TERMS_SIGNATURE_B64
-        value: e0ZIYLl0o/J7rqCQVCA/jfJmCvHvzMPPoLRaltF46nKQzIaXlV2orQXBgdteKOIshtse9FA0u2rCOr86/RNTDQ==
+        sync: false
+      - key: SALE_AUCTION_ID
+        sync: false
+      - key: SALE_AUCTION_STARTS_AT
+        sync: false
+      - key: SALE_AUCTION_ENDS_AT
+        sync: false
       - key: SALE_ALLOWED_ORIGIN
         value: https://mosulonsol-max.github.io
