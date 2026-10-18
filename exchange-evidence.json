@@ -1,12 +1,12 @@
 {
-  "timestamp_utc": "2026-10-18T01:21:15.850580+00:00",
+  "timestamp_utc": "2026-10-18T01:32:21.066920+00:00",
   "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
   "creator_wallet": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
   "sources": {
     "token_supply": {
       "context": {
         "apiVersion": "4.3.0",
-        "slot": 458250115
+        "slot": 458253177
       },
       "value": {
         "amount": "1000000000000000",
@@ -58,7 +58,7 @@
     },
     "creator_wallet_token_accounts": {
       "context": {
-        "slot": 458250149,
+        "slot": 458253210,
         "apiVersion": "4.3.0-beta.2"
       },
       "value": [
@@ -117,6 +117,90 @@
         "pool_created_at": "2026-10-10T21:32:52Z"
       }
     ],
+    "pumpfun_coin": {
+      "provider": "GeckoTerminal public API",
+      "source_url": "https://api.geckoterminal.com/api/v2/networks/solana/tokens/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
+      "fields": {
+        "address": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
+        "name": "Mosul",
+        "symbol": "MOSUL",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/h2rq34xai9c4bpyvclhilfg0sjjj",
+        "coingecko_coin_id": null,
+        "total_supply": "1000000000000000.0",
+        "normalized_total_supply": "1000000000.0",
+        "price_usd": null,
+        "fdv_usd": null,
+        "total_reserve_in_usd": "2455.584975641518528717274916",
+        "volume_usd": {
+          "h24": "0.0"
+        },
+        "market_cap_usd": null,
+        "launchpad_details": {
+          "graduation_percentage": 1.0,
+          "completed": false,
+          "completed_at": null,
+          "migrated_destination_pool_address": null
+        }
+      }
+    },
+    "gecko_token_info": {
+      "provider": "GeckoTerminal public API",
+      "source_url": "https://api.geckoterminal.com/api/v2/networks/solana/tokens/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump/info",
+      "fields": {
+        "address": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
+        "name": "Mosul",
+        "symbol": "MOSUL",
+        "decimals": 6,
+        "image_url": "https://assets.geckoterminal.com/h2rq34xai9c4bpyvclhilfg0sjjj",
+        "image": {
+          "thumb": "https://assets.geckoterminal.com/ti58h6yv4cjmjvqksyqwy0qk0olh",
+          "small": "https://assets.geckoterminal.com/myzmpxnq8aneslw26o2h04sl7qov",
+          "large": "https://assets.geckoterminal.com/h2rq34xai9c4bpyvclhilfg0sjjj"
+        },
+        "banner_image_url": null,
+        "coingecko_coin_id": null,
+        "websites": [],
+        "discord_url": null,
+        "farcaster_url": null,
+        "zora_url": null,
+        "telegram_handle": null,
+        "twitter_handle": "MosulOnSol",
+        "description": "MOSUL is a community-driven meme token inspired by the history, culture, and resilience of Mosul, Iraq.\nBuilt on Solana, MOSUL celebrates the city's heritage and connects a global community through digital culture.\nMOSUL is an independent community token with no government affiliation, guaranteed returns, or promised financial utility.",
+        "gt_score": 41.55844155844156,
+        "gt_score_details": {
+          "pool": 42.857,
+          "transaction": 0.0,
+          "creation": 0.0,
+          "info": 40.0,
+          "holders": 56.25
+        },
+        "gt_verified": false,
+        "categories": [
+          "Pump Fun"
+        ],
+        "gt_category_ids": [
+          "pump-fun"
+        ],
+        "holders": {
+          "count": null,
+          "distribution_percentage": null,
+          "last_updated": null
+        },
+        "mint_authority": "no",
+        "freeze_authority": "no",
+        "is_honeypot": "unknown",
+        "is_nsfw": false,
+        "developer_address": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
+        "developer_holding_percentage": "0.76",
+        "launchpad_details": {
+          "graduation_percentage": 1.0,
+          "completed": false,
+          "completed_at": null,
+          "migrated_destination_pool_address": null
+        }
+      }
+    },
     "signature_page_https": {
       "url": "https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/wallet-proof.html",
       "http_status": 200,
@@ -137,10 +221,6 @@
     {
       "source": "largest_token_accounts",
       "error": "All RPC providers failed; initial: HTTP Error 429: Too Many Requests"
-    },
-    {
-      "source": "pumpfun_coin",
-      "error": "Pump.fun public API unavailable: [{\"url\": \"https://frontend-api-v3.pump.fun/coins/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump\", \"error\": \"HTTP Error 404: Not Found\"}, {\"url\": \"https://frontend-api-v2.pump.fun/coins/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump\", \"error\": \"HTTP Error 403: Forbidden\"}, {\"url\": \"https://frontend-api.pump.fun/coins/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump\", \"error"
     }
   ],
   "limitations": [
@@ -152,6 +232,17 @@
     "Founder/team allocation, related-wallet clusters, locks, vesting and beneficial ownership cannot be inferred from the top-account list alone.",
     "Even if HTTPS page loads, Phantom iPhone signing and end-to-end UX require manual testing.",
     "No application is submitted by this workflow.",
-    "Pump.fun launchpad bonding-curve state must be checked separately from migrated DEX pools; unavailable APIs are not proof of zero trading."
-  ]
+    "GeckoTerminal public API is beta and rate-limited; absent or null fields remain unverified rather than being inferred.",
+    "GeckoTerminal holder statistics may be null or incomplete; token-account concentration still requires a working Solana RPC or a documented holder-data provider.",
+    "Pump.fun launchpad state is reported from GeckoTerminal’s token endpoint; verify material trading or migration claims against on-chain state."
+  ],
+  "completeness": {
+    "status": "partial",
+    "missing_fields": [
+      "largest token accounts and token-account concentration",
+      "holder count and holder distribution"
+    ],
+    "observed_volume_24h_usd": "0.0",
+    "note": "A measured zero volume is reported as zero; it is not treated as missing data."
+  }
 }
