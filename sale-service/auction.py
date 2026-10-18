@@ -1,4 +1,4 @@
-"""Signed, ascending USDC auction offers; payment is requested only after close."""
+"""Signed, ascending USD auction offers; payment is requested only after close."""
 from __future__ import annotations
 
 import base64
@@ -14,7 +14,7 @@ from decimal import Decimal, InvalidOperation
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-from core import USDC_MINT, b58decode, validate_pubkey, utc_now
+from core import b58decode, validate_pubkey, utc_now
 
 AUCTION_ID_RE = re.compile(r"^[A-Za-z0-9_-]{8,80}$")
 
@@ -25,17 +25,17 @@ def utc_iso(value: dt.datetime) -> str:
     return value.astimezone(dt.timezone.utc).replace(microsecond=0).isoformat()
 
 
-def usdc_raw(value: str) -> int:
+def usd_raw(value: str) -> int:
     try:
         amount = Decimal(value)
     except (InvalidOperation, TypeError):
-        raise ValueError("invalid USDC bid") from None
+        raise ValueError("invalid USD bid") from None
     if not amount.is_finite() or amount <= 0 or amount.as_tuple().exponent < -2:
         raise ValueError("bid must be a positive amount with at most two decimals")
     return int(amount * 1_000_000)
 
 
-def usdc_text(raw: int) -> str:
+def usd_text(raw: int) -> str:
     return f"{Decimal(raw) / Decimal(1_000_000):.2f}"
 
 
@@ -156,10 +156,10 @@ def auction_snapshot(db: sqlite3.Connection, cfg: AuctionConfig,
         "status": state,
         "starts_at": utc_iso(cfg.starts_at),
         "ends_at": utc_iso(cfg.ends_at),
-        "opening_bid_usdc": usdc_text(cfg.opening_bid_raw),
-        "minimum_increment_usdc": usdc_text(cfg.increment_raw),
-        "next_minimum_bid_usdc": usdc_text(next_minimum) if state == "open" else None,
-        "highest_bid_usdc": usdc_text(leader["amount_raw"]) if leader else None,
+        "opening_bid_usd": usd_text(cfg.opening_bid_raw),
+        "minimum_increment_usd": usd_text(cfg.increment_raw),
+        "next_minimum_bid_usd": usd_text(next_minimum) if state == "open" else None,
+        "highest_bid_usd": usd_text(leader["amount_raw"]) if leader else None,
         "bid_count": db.execute(
             "SELECT COUNT(*) FROM auction_bids WHERE auction_id=? AND status IN ('valid','selected','paid')",
             (cfg.auction_id,),
@@ -176,22 +176,22 @@ def create_bid_challenge(db: sqlite3.Connection, cfg: AuctionConfig,
     bidder_wallet = validate_pubkey(bidder_wallet)
     if auction_status(cfg, now) != "open":
         raise ValueError("auction is not open for bids")
-    amount_raw = usdc_raw(amount)
+    amount_raw = usd_raw(amount)
     leader = _leader(db, cfg)
     minimum = cfg.opening_bid_raw if not leader else leader["amount_raw"] + cfg.increment_raw
     if amount_raw < minimum:
-        raise ValueError(f"bid must be at least {usdc_text(minimum)} USDC")
+        raise ValueError(f"bid must be at least {usd_text(minimum)} USD")
     challenge_id = secrets.token_urlsafe(24)
     expires = now.astimezone(dt.timezone.utc).replace(microsecond=0) + dt.timedelta(minutes=5)
     message = (
         "MOSUL HERITAGE AUCTION BID\n"
         f"Auction: {cfg.auction_id}\n"
         f"Bidder: {bidder_wallet}\n"
-        f"Amount: {usdc_text(amount_raw)} USDC\n"
+        f"Amount: {usd_text(amount_raw)} USD\n"
         f"Starts: {utc_iso(cfg.starts_at)}\n"
         f"Ends: {utc_iso(cfg.ends_at)}\n"
-        f"Opening bid: {usdc_text(cfg.opening_bid_raw)} USDC\n"
-        f"Minimum increment: {usdc_text(cfg.increment_raw)} USDC\n"
+        f"Opening bid: {usd_text(cfg.opening_bid_raw)} USD\n"
+        f"Minimum increment: {usd_text(cfg.increment_raw)} USD\n"
         f"Terms SHA-256: {accepted_terms_sha256}\n"
         f"Challenge: {challenge_id}\n"
         f"Expires: {utc_iso(expires)}\n"
@@ -222,7 +222,7 @@ def submit_bid(db: sqlite3.Connection, cfg: AuctionConfig, challenge_id: str,
     leader = _leader(db, cfg)
     minimum = cfg.opening_bid_raw if not leader else leader["amount_raw"] + cfg.increment_raw
     if challenge["amount_raw"] < minimum:
-        raise ValueError(f"another bid was accepted; new minimum is {usdc_text(minimum)} USDC")
+        raise ValueError(f"another bid was accepted; new minimum is {usd_text(minimum)} USD")
     try:
         signature = base64.b64decode(signature_b64, validate=True)
         key = Ed25519PublicKey.from_public_bytes(b58decode(challenge["bidder_wallet"]))
@@ -240,7 +240,7 @@ def submit_bid(db: sqlite3.Connection, cfg: AuctionConfig, challenge_id: str,
                    (bid_id, cfg.auction_id, challenge["bidder_wallet"],
                     challenge["amount_raw"], challenge["message"], signature_b64, created))
     return {"bid_id": bid_id, "status": "accepted",
-            "amount_usdc": usdc_text(challenge["amount_raw"]), "created_at": created}
+            "amount_usd": usd_text(challenge["amount_raw"]), "created_at": created}
 
 
 def winning_bid(db: sqlite3.Connection, cfg: AuctionConfig,
@@ -309,8 +309,8 @@ def create_winner_order_challenge(db: sqlite3.Connection, cfg: AuctionConfig,
         f"Product: {product_id}\n"
         f"Winning bid: {winner['id']}\n"
         f"Bidder: {winner['bidder_wallet']}\n"
-        f"Amount: {usdc_text(winner['amount_raw'])} USDC\n"
-        f"Payment mint: {USDC_MINT}\n"
+        f"Amount: {usd_text(winner['amount_raw'])} USD\n"
+        "Payment asset: MOSUL (Solana Token-2022)\n"
         f"Merchant wallet: {merchant_wallet}\n"
         f"Terms SHA-256: {terms_sha256}\n"
         f"Idempotency key: {idempotency_key}\n"

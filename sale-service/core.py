@@ -20,6 +20,13 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 MAINNET_RPC = "https://api.mainnet-beta.solana.com"
 USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+MOSUL_MINT = "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump"
+TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+TOKEN_2022_PROGRAM_ID = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+SUPPORTED_PAYMENT_ASSETS = {
+    "USDC": (USDC_MINT, TOKEN_PROGRAM_ID, 6),
+    "MOSUL": (MOSUL_MINT, TOKEN_2022_PROGRAM_ID, 6),
+}
 MEMO_PROGRAM = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
 SIGNATURE_RE = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{64,100}$")
 ORDER_ID_RE = re.compile(r"^[A-Za-z0-9_-]{20,80}$")
@@ -64,18 +71,22 @@ class Product:
     id: str
     title: str
     category: str
-    price_usdc: str
+    price_usd: str
     amount_raw: int
     terms_version: str
     terms_sha256: str
     merchant_wallet: str = ""
-    auction_opening_bid_usdc: str = ""
-    auction_increment_usdc: str = ""
+    auction_opening_bid_usd: str = ""
+    auction_increment_usd: str = ""
+    payment_asset: str = "USDC"
+    payment_mint: str = USDC_MINT
+    payment_program_id: str = TOKEN_PROGRAM_ID
+    payment_decimals: int = 6
 
 
 def load_product(path: str | Path) -> Product:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    required = ("id", "title", "category", "price_usdc", "amount_raw",
+    required = ("id", "title", "category", "price_usd", "amount_raw",
                 "terms_version", "terms_sha256")
     if any(name not in data or data[name] is None for name in required):
         raise ValueError("product configuration is incomplete")
@@ -85,13 +96,22 @@ def load_product(path: str | Path) -> Product:
         raise ValueError("product amount must be positive unless configured for auction")
     if not re.fullmatch(r"[0-9a-f]{64}", data["terms_sha256"]):
         raise ValueError("invalid terms hash")
+    payment_asset = str(data.get("payment_asset", "USDC"))
+    payment_mint, payment_program_id, payment_decimals = SUPPORTED_PAYMENT_ASSETS.get(
+        payment_asset, (None, None, None))
+    if (not payment_mint or data.get("payment_mint") != payment_mint
+            or data.get("payment_program_id") != payment_program_id
+            or int(data.get("payment_decimals", -1)) != payment_decimals):
+        raise ValueError("payment asset mint, token program and decimals must match the supported asset")
     return Product(
         id=str(data["id"]), title=str(data["title"]), category=str(data["category"]),
-        price_usdc=str(data["price_usdc"]), amount_raw=amount,
+        price_usd=str(data["price_usd"]), amount_raw=amount,
         terms_version=str(data["terms_version"]), terms_sha256=data["terms_sha256"],
         merchant_wallet=str(data.get("merchant_wallet", "")),
-        auction_opening_bid_usdc=str(data.get("auction_opening_bid_usdc", "")),
-        auction_increment_usdc=str(data.get("auction_increment_usdc", "")),
+        auction_opening_bid_usd=str(data.get("auction_opening_bid_usd", "")),
+        auction_increment_usd=str(data.get("auction_increment_usd", "")),
+        payment_asset=payment_asset, payment_mint=payment_mint,
+        payment_program_id=payment_program_id, payment_decimals=payment_decimals,
     )
 
 
@@ -117,7 +137,7 @@ def seller_terms_message(*, legal_name: str, trade_name: str, wallet: str,
         f"Terms SHA-256: {product.terms_sha256}\n"
         f"Signed at: {signed_at}\n"
         "I approve these exact auction and buyer terms and authorize this wallet "
-        "to receive the winning payment."
+        "to receive the winning MOSUL payment."
     )
 
 
@@ -180,6 +200,20 @@ def connect(path: str | Path) -> sqlite3.Connection:
     columns = {row[1] for row in db.execute("PRAGMA table_info(orders)")}
     if "auction_bid_id" not in columns:
         db.execute("ALTER TABLE orders ADD COLUMN auction_bid_id TEXT")
+    if "payment_program_id" not in columns:
+        db.execute("ALTER TABLE orders ADD COLUMN payment_program_id TEXT NOT NULL DEFAULT '" + TOKEN_PROGRAM_ID + "'")
+    if "payment_asset" not in columns:
+        db.execute("ALTER TABLE orders ADD COLUMN payment_asset TEXT NOT NULL DEFAULT 'USDC'")
+    if "token_price_usd" not in columns:
+        db.execute("ALTER TABLE orders ADD COLUMN token_price_usd TEXT")
+    if "token_quote_at" not in columns:
+        db.execute("ALTER TABLE orders ADD COLUMN token_quote_at TEXT")
+    if "quote_source" not in columns:
+        db.execute("ALTER TABLE orders ADD COLUMN quote_source TEXT")
+    if "quote_liquidity_usd" not in columns:
+        db.execute("ALTER TABLE orders ADD COLUMN quote_liquidity_usd TEXT")
+    if "quote_pair_address" not in columns:
+        db.execute("ALTER TABLE orders ADD COLUMN quote_pair_address TEXT")
     db.execute("CREATE UNIQUE INDEX IF NOT EXISTS one_order_per_auction_bid "
                "ON orders(auction_bid_id) WHERE auction_bid_id IS NOT NULL")
     return db
@@ -192,25 +226,60 @@ def expire_stale(db: sqlite3.Connection, product_id: str) -> None:
     )
 
 
+def token_amount_raw(price_usd: str, token_price_usd: str, decimals: int) -> int:
+    """Convert a USD auction value to whole raw token units, rounding up."""
+    try:
+        value = decimal.Decimal(price_usd)
+        token_price = decimal.Decimal(token_price_usd)
+    except (decimal.InvalidOperation, TypeError):
+        raise ValueError("a valid USD price and token reference price are required") from None
+    if (not value.is_finite() or value <= 0 or value.as_tuple().exponent < -2
+            or not token_price.is_finite() or token_price <= 0
+            or token_price.as_tuple().exponent < -18 or not 0 <= decimals <= 18):
+        raise ValueError("USD price, token quote or decimals are outside the supported range")
+    units = value / token_price * (10 ** decimals)
+    return int(units.to_integral_value(rounding=decimal.ROUND_CEILING))
+
+
+def token_amount_text(raw: int, decimals: int) -> str:
+    value = decimal.Decimal(raw).scaleb(-decimals)
+    return format(value, "f")
+
+
 def create_order(db: sqlite3.Connection, *, product: Product, merchant_wallet: str,
                  idempotency_key: str, buyer_wallet: str | None,
                  accepted_terms_sha256: str, ttl_minutes: int = 30,
-                 price_usdc: str | None = None, auction_bid_id: str | None = None) -> dict:
+                 price_usd: str | None = None, auction_bid_id: str | None = None,
+                 token_price_usd: str | None = None,
+                 token_quote_at: str | None = None, quote_source: str | None = None,
+                 quote_liquidity_usd: str | None = None,
+                 quote_pair_address: str | None = None) -> dict:
     merchant_wallet = validate_pubkey(merchant_wallet)
     buyer_wallet = validate_pubkey(buyer_wallet) if buyer_wallet else None
     if not re.fullmatch(r"[A-Za-z0-9._:-]{8,100}", idempotency_key or ""):
         raise ValueError("invalid idempotency key")
     if not hmac.compare_digest(accepted_terms_sha256 or "", product.terms_sha256):
         raise PermissionError("the current buyer terms must be accepted")
-    selected_price = price_usdc if price_usdc is not None else product.price_usdc
+    selected_price = price_usd if price_usd is not None else product.price_usd
     try:
         amount = decimal.Decimal(selected_price)
     except (decimal.InvalidOperation, TypeError):
         raise ValueError("a valid price or winning bid is required") from None
     if not amount.is_finite() or amount <= 0 or amount.as_tuple().exponent < -2:
-        raise ValueError("payment must be a positive USDC amount with at most two decimals")
-    amount_raw = int(amount * 1_000_000)
+        raise ValueError("USD reference price must be positive with at most two decimals")
     formatted_price = str(amount.quantize(decimal.Decimal("0.01")))
+    if product.payment_asset == "MOSUL":
+        if not token_price_usd or not token_quote_at:
+            raise ValueError("a fresh MOSUL/USD quote is required")
+        quoted_at = dt.datetime.fromisoformat(token_quote_at.replace("Z", "+00:00"))
+        if quoted_at.tzinfo is None or abs((utc_now() - quoted_at).total_seconds()) > 300:
+            raise ValueError("MOSUL/USD quote is stale")
+        amount_raw = token_amount_raw(formatted_price, token_price_usd,
+                                      product.payment_decimals)
+    else:
+        amount_raw = int(amount * 10 ** product.payment_decimals)
+        token_price_usd = "1"
+        token_quote_at = utc_now().isoformat()
     existing = db.execute(
         "SELECT * FROM orders WHERE idempotency_key=?", (idempotency_key,)
     ).fetchone()
@@ -239,12 +308,16 @@ def create_order(db: sqlite3.Connection, *, product: Product, merchant_wallet: s
             """INSERT INTO orders
             (id,idempotency_key,product_id,buyer_wallet,merchant_wallet,mint,amount_raw,
              price_usd,reference_key,memo,claim_secret_hash,terms_version,terms_sha256,status,created_at,
-             expires_at,payment_signature,paid_at,download_count,auction_bid_id)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?)""",
+             expires_at,payment_signature,paid_at,download_count,auction_bid_id,payment_program_id,
+             payment_asset,token_price_usd,token_quote_at,quote_source,quote_liquidity_usd,
+             quote_pair_address)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?)""",
             (order_id, idempotency_key, product.id, buyer_wallet, merchant_wallet,
-             USDC_MINT, amount_raw, formatted_price, reference, memo, claim_secret_hash,
+             product.payment_mint, amount_raw, formatted_price, reference, memo, claim_secret_hash,
              product.terms_version, product.terms_sha256, "pending", now.isoformat(),
-             expires.isoformat(), None, None, auction_bid_id),
+             expires.isoformat(), None, None, auction_bid_id, product.payment_program_id,
+             product.payment_asset, token_price_usd, token_quote_at, quote_source,
+             quote_liquidity_usd, quote_pair_address),
         )
     row = db.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
     return public_order(row, product) | {"claim_secret": claim_secret}
@@ -276,7 +349,8 @@ def renew_pending_order_claim(db: sqlite3.Connection, *, order_id: str,
 
 def solana_pay_uri(order: sqlite3.Row, product: Product) -> str:
     query = urllib.parse.urlencode({
-        "amount": order["price_usd"],
+        "amount": (order["price_usd"] if order["payment_asset"] == "USDC"
+                   else token_amount_text(order["amount_raw"], product.payment_decimals)),
         "spl-token": order["mint"],
         "reference": order["reference_key"],
         "label": "MOSUL HERITAGE",
@@ -290,8 +364,15 @@ def public_order(order: sqlite3.Row, product: Product) -> dict:
     result = {
         "id": order["id"], "product_id": order["product_id"],
         "title": product.title, "status": order["status"],
-        "network": "mainnet-beta", "asset": "USDC", "mint": order["mint"],
-        "amount_raw": order["amount_raw"], "amount": order["price_usd"],
+        "network": "mainnet-beta", "asset": order["payment_asset"], "mint": order["mint"],
+        "amount_raw": order["amount_raw"],
+        "amount": (order["price_usd"] if order["payment_asset"] == "USDC"
+                   else token_amount_text(order["amount_raw"], product.payment_decimals)),
+        "price_usd": order["price_usd"], "token_price_usd": order["token_price_usd"],
+        "token_quote_at": order["token_quote_at"],
+        "quote_source": order["quote_source"],
+        "quote_liquidity_usd": order["quote_liquidity_usd"],
+        "quote_pair_address": order["quote_pair_address"],
         "merchant_wallet": order["merchant_wallet"],
         "reference": order["reference_key"], "memo": order["memo"],
         "terms_version": order["terms_version"],
@@ -330,11 +411,14 @@ def _account_keys(transaction: dict) -> set[str]:
     return {str(k.get("pubkey")) if isinstance(k, dict) else str(k) for k in keys}
 
 
-def _token_amounts(balances: list[dict], mint: str, owner: str) -> dict[int, int]:
+def _token_amounts(balances: list[dict], mint: str, owner: str,
+                   program_id: str) -> dict[int, int]:
     result: dict[int, int] = {}
     for item in balances or []:
         if item.get("mint") != mint or item.get("owner") != owner:
             continue
+        if item.get("programId") != program_id:
+            raise ValueError("token balance came from the wrong Solana token program")
         try:
             result[int(item["accountIndex"])] = int(item["uiTokenAmount"]["amount"])
         except (KeyError, TypeError, ValueError):
@@ -377,16 +461,16 @@ def verify_transaction(transaction: dict | None, order: sqlite3.Row) -> None:
         raise ValueError("transaction is outside the order validity window")
     meta = transaction.get("meta", {})
     before = _token_amounts(meta.get("preTokenBalances", []), order["mint"],
-                            order["merchant_wallet"])
+                            order["merchant_wallet"], order["payment_program_id"])
     after = _token_amounts(meta.get("postTokenBalances", []), order["mint"],
-                           order["merchant_wallet"])
+                           order["merchant_wallet"], order["payment_program_id"])
     received = sum(after.get(i, 0) - before.get(i, 0) for i in set(before) | set(after))
     if received != order["amount_raw"]:
         raise ValueError("finalized transaction does not contain the exact token payment")
     buyer_before = _token_amounts(meta.get("preTokenBalances", []), order["mint"],
-                                  order["buyer_wallet"])
+                                  order["buyer_wallet"], order["payment_program_id"])
     buyer_after = _token_amounts(meta.get("postTokenBalances", []), order["mint"],
-                                 order["buyer_wallet"])
+                                 order["buyer_wallet"], order["payment_program_id"])
     debited = sum(buyer_before.get(i, 0) - buyer_after.get(i, 0)
                   for i in set(buyer_before) | set(buyer_after))
     if debited != order["amount_raw"]:

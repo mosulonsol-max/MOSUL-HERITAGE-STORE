@@ -19,8 +19,9 @@ from core import (MainnetRpc, authorize_download, comparable_sales, confirm_orde
                   verify_seller_terms_signature)
 from auction import (AuctionConfig, auction_snapshot, consume_winner_order_challenge,
                     create_bid_challenge, create_winner_order_challenge,
-                    init_auction, payable_winner, submit_bid, usdc_raw, usdc_text)
+                    init_auction, payable_winner, submit_bid, usd_raw, usd_text)
 from readiness import evaluate_readiness
+from pricing import mosul_usd_quote
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("SALE_DB", "data/sales.sqlite3"))
@@ -53,14 +54,14 @@ def load_auction_config() -> AuctionConfig | None:
     try:
         starts = dt.datetime.fromisoformat(os.environ[names[1]].replace("Z", "+00:00"))
         ends = dt.datetime.fromisoformat(os.environ[names[2]].replace("Z", "+00:00"))
-        opening = PRODUCT.auction_opening_bid_usdc
-        increment = PRODUCT.auction_increment_usdc
-        if usdc_raw(os.environ.get("SALE_AUCTION_OPENING_BID_USDC", opening)) != usdc_raw(opening):
+        opening = PRODUCT.auction_opening_bid_usd
+        increment = PRODUCT.auction_increment_usd
+        if usd_raw(os.environ.get("SALE_AUCTION_OPENING_BID_USD", opening)) != usd_raw(opening):
             raise ValueError("opening bid differs from the signed product terms")
-        if usdc_raw(os.environ.get("SALE_AUCTION_INCREMENT_USDC", increment)) != usdc_raw(increment):
+        if usd_raw(os.environ.get("SALE_AUCTION_INCREMENT_USD", increment)) != usd_raw(increment):
             raise ValueError("bid increment differs from the signed product terms")
         return AuctionConfig(os.environ[names[0]], starts, ends,
-                             usdc_raw(opening), usdc_raw(increment))
+                             usd_raw(opening), usd_raw(increment))
     except (ValueError, TypeError) as exc:
         raise SystemExit(f"invalid auction configuration: {exc}") from None
 
@@ -205,7 +206,7 @@ class Handler(BaseHTTPRequestHandler):
                     if hmac.compare_digest(bidder, MERCHANT_WALLET):
                         raise PermissionError("the seller cannot bid on this auction")
                     result = create_bid_challenge(
-                        db, AUCTION, bidder, str(body["amount_usdc"]),
+                        db, AUCTION, bidder, str(body["amount_usd"]),
                         accepted,
                     )
                 elif self.path == "/bids" and AUCTION:
@@ -244,12 +245,18 @@ class Handler(BaseHTTPRequestHandler):
                             product=PRODUCT,
                         )
                     else:
+                        quote = mosul_usd_quote() if PRODUCT.payment_asset == "MOSUL" else None
                         result = create_order(
                             db, product=PRODUCT, merchant_wallet=MERCHANT_WALLET,
                             idempotency_key=str(body["idempotency_key"]),
                             buyer_wallet=buyer_wallet, accepted_terms_sha256=accepted,
-                            ttl_minutes=1440, price_usdc=usdc_text(winner["amount_raw"]),
+                            ttl_minutes=1440, price_usd=usd_text(winner["amount_raw"]),
                             auction_bid_id=winner["id"],
+                            token_price_usd=quote["price_usd"] if quote else None,
+                            token_quote_at=quote["quoted_at"] if quote else None,
+                            quote_source=quote["source"] if quote else None,
+                            quote_liquidity_usd=quote["liquidity_usd"] if quote else None,
+                            quote_pair_address=quote["pair_address"] if quote else None,
                         )
                         with db:
                             db.execute("UPDATE auction_bids SET status='selected' WHERE id=? AND status='valid'",

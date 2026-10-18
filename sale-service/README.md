@@ -3,19 +3,19 @@
 This directory contains a fail-closed timed ascending auction and checkout for
 the one-of-one product MOSUL-GENESIS-000001. Bidders sign offers with their own
 Solana wallets; a bid does not transfer or escrow funds. After auction close,
-the highest valid bidder receives a 24-hour request for the winning bid amount
-in USDC after signing a fresh, single-use winner-order challenge. The service
+the highest valid bidder receives a 24-hour request for the winning USD-referenced bid amount
+in MOSUL (Solana Token-2022) after signing a fresh, single-use winner-order challenge. The service
 verifies the finalized Mainnet transfer, prevents replay
 and duplicate sale, records the completed price, and releases a private ZIP
 through a short-lived, download-limited token.
 
 It does not hold a wallet private key and never signs or sends a transaction.
-The buyer signs in their own wallet. The seller receives USDC directly.
+The buyer signs in their own wallet. The seller receives MOSUL directly at the seller-authorized wallet. Each payment order records the DEX Screener reference price, pool, liquidity display and quote time; an unavailable quote fails closed.
 
 ## Auction price
 
 The final price is the highest eligible signed bid at the announced close. The
-evidence-backed opening bid is 100 USDC and the minimum increment is 10 USDC.
+opening bid is 100 USD and the minimum increment is 10 USD; checkout converts the winner’s USD bid to MOSUL using a fresh market reference quote.
 Start and close are required deployment settings; there is no fixed sale
 price. A winner has 24 hours to pay. If the
 payment window expires, that bidder is marked as defaulted and the next highest
@@ -45,8 +45,8 @@ are supplied:
   and auction-window gate as passed
 - SALES_MERCHANT_WALLET: an owner-verified Solana wallet, never a mint address
 - SALE_AUCTION_ID, SALE_AUCTION_STARTS_AT, SALE_AUCTION_ENDS_AT
-- optional SALE_AUCTION_OPENING_BID_USDC and SALE_AUCTION_INCREMENT_USDC may
-  repeat, but may not override, the signed product settings (100/10 USDC)
+- optional SALE_AUCTION_OPENING_BID_USD and SALE_AUCTION_INCREMENT_USD may
+  repeat, but may not override, the signed product settings (100/10 USD)
 - SELLER_LEGAL_NAME, SELLER_TRADE_NAME, SELLER_COUNTRY, SELLER_ADDRESS,
   SELLER_SUPPORT_EMAIL
 - SELLER_TERMS_SIGNED_AT and SELLER_TERMS_SIGNATURE_B64, produced by
@@ -63,11 +63,7 @@ terms version and SHA-256 in products/MOSUL-GENESIS-000001.json. A changed file,
 identity, wallet, version or timestamp invalidates the signature.
 Deployment must provide HTTPS, durable database backups, log redaction,
 monitoring, request throttling, and an independent security review.
-Do not launch USDC checkout until the seller has confirmed the payment method
-is permitted for this sale and location. The CBI has warned about digital
-currencies and restricted licensed financial institutions from using cards and
-e-wallets for crypto speculation/trading; this service does not make USDC an
-authorized Iraqi payment instrument.
+The product terms are a draft and must be reviewed and signed by the seller before activation. The receiving wallet must be selected by the seller and separately authorized; the project-to-token proof wallet is not assumed to be a payment wallet. The code change has synthetic tests only and is not an end-to-end market or mainnet payment test. This service does not establish legal permission to accept crypto payments in Iraq; obtain appropriate local advice before activation.
 
 ## Test
 

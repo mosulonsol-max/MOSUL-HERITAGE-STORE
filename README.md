@@ -70,12 +70,14 @@ The `ai-engine/` directory contains an Ollama/Qwen planning layer, deterministic
 The repository now contains a fail-closed timed ascending auction for the
 one-of-one `MOSUL-GENESIS-000001`. The final price is the highest eligible
 wallet-signed bid at the announced close; there is no fixed sale price. The
-winner receives a 24-hour exact-amount USDC payment request. The service
-verifies the finalized Mainnet transfer, rejects replay, prevents duplicate
-sale, and protects private delivery. Bid messages do not escrow funds.
+winner receives a 24-hour exact-amount MOSUL payment request. The USD
+reference bid is converted with a fresh DEX Screener price quote, whose price,
+pool, displayed liquidity and time are recorded on the order. The service
+verifies the finalized Mainnet Token-2022 transfer, rejects replay, prevents
+duplicate sale, and protects private delivery. Bid messages do not escrow funds.
 
 This is not yet an active offer. Activation requires the owner's signed seller
-terms and their SHA-256, an owner-verified receiving wallet, auction dates and
+terms and their SHA-256, a seller-selected and signed receiving wallet, auction dates and
 bid settings, the private delivery ZIP, an HTTPS deployment, and review of the
 payment method for the seller's location. See [the auction checkout](checkout.html),
 [deployment notes](sale-service/README.md), and [security boundary](sale-service/SECURITY.md).

@@ -9,13 +9,13 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from auction import (AuctionConfig, auction_snapshot, consume_winner_order_challenge,
                      create_bid_challenge, create_winner_order_challenge,
-                     payable_winner, submit_bid, usdc_raw, winning_bid)
+                     payable_winner, submit_bid, usd_raw, winning_bid)
 from core import Product, b58encode, connect, create_order, renew_pending_order_claim
 
 UTC = dt.timezone.utc
 NOW = dt.datetime(2030, 1, 1, 12, 0, tzinfo=UTC)
 CFG = AuctionConfig("genesis-000001", NOW - dt.timedelta(hours=1),
-                    NOW + dt.timedelta(days=7), usdc_raw("50"), usdc_raw("5"))
+                    NOW + dt.timedelta(days=7), usd_raw("50"), usd_raw("5"))
 TERMS = "a" * 64
 MERCHANT = "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu"
 PRODUCT = Product("MOSUL-GENESIS-000001", "Mosul 1932", "digital-art-one-of-one",
@@ -48,7 +48,7 @@ class AuctionTests(unittest.TestCase):
         bid = self.bid(key, wallet, "50")
         self.assertEqual(bid["status"], "accepted")
         snapshot = auction_snapshot(self.db, CFG, NOW)
-        self.assertEqual(snapshot["highest_bid_usdc"], "50.00")
+        self.assertEqual(snapshot["highest_bid_usd"], "50.00")
         self.assertNotIn(wallet, str(snapshot))
 
     def test_minimum_increment_and_tampered_signature_are_rejected(self):
@@ -80,7 +80,7 @@ class AuctionTests(unittest.TestCase):
         bid = winning_bid(self.db, CFG, "MOSUL-GENESIS-000001",
                           CFG.ends_at + dt.timedelta(seconds=1))
         self.assertEqual(bid["bidder_wallet"], wallet2)
-        self.assertEqual(bid["amount_raw"], usdc_raw("55"))
+        self.assertEqual(bid["amount_raw"], usd_raw("55"))
 
     def test_expired_winner_defaults_and_next_bidder_can_pay(self):
         key1, wallet1 = self.key()
@@ -94,7 +94,7 @@ class AuctionTests(unittest.TestCase):
         order = create_order(
             self.db, product=PRODUCT, merchant_wallet=MERCHANT,
             idempotency_key="auction-selection-001", buyer_wallet=wallet2,
-            accepted_terms_sha256=TERMS, price_usdc="55", auction_bid_id=winner["id"],
+            accepted_terms_sha256=TERMS, price_usd="55", auction_bid_id=winner["id"],
         )
         self.db.execute("UPDATE orders SET expires_at=? WHERE id=?",
                         (expiry.isoformat(), order["id"]))
@@ -108,7 +108,7 @@ class AuctionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             AuctionConfig("bad", NOW, NOW - dt.timedelta(minutes=1), 1, 1)
         with self.assertRaises(ValueError):
-            usdc_raw("0.001")
+            usd_raw("0.001")
 
     def test_winner_order_requires_fresh_wallet_signature_and_single_use(self):
         winner_key, winner_wallet = self.key()
@@ -165,7 +165,7 @@ class AuctionTests(unittest.TestCase):
     def test_winner_can_recover_lost_order_claim_with_new_signature(self):
         now = dt.datetime.now(UTC).replace(microsecond=0)
         cfg = AuctionConfig("genesis-recovery", now - dt.timedelta(hours=1),
-                            now + dt.timedelta(seconds=10), usdc_raw("50"), usdc_raw("5"))
+                            now + dt.timedelta(seconds=10), usd_raw("50"), usd_raw("5"))
         key, wallet = self.key()
         bid_challenge = create_bid_challenge(self.db, cfg, wallet, "50", TERMS, now)
         bid_signature = base64.b64encode(key.sign(bid_challenge["message"].encode())).decode()
@@ -174,7 +174,7 @@ class AuctionTests(unittest.TestCase):
         order = create_order(
             self.db, product=PRODUCT, merchant_wallet=MERCHANT,
             idempotency_key="winner-order-original", buyer_wallet=wallet,
-            accepted_terms_sha256=TERMS, price_usdc="50", auction_bid_id=bid["bid_id"],
+            accepted_terms_sha256=TERMS, price_usd="50", auction_bid_id=bid["bid_id"],
         )
         self.db.execute("UPDATE auction_bids SET status='selected' WHERE id=?", (bid["bid_id"],))
         winner, active = payable_winner(self.db, cfg, PRODUCT.id, closed)

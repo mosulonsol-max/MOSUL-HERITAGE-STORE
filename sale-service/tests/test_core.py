@@ -8,9 +8,10 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from core import (MEMO_PROGRAM, Product, authorize_download, b58encode, confirm_order, connect,
+from core import (MEMO_PROGRAM, MOSUL_MINT, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID,
+                  Product, authorize_download, b58encode, confirm_order, connect,
                   create_order, seller_terms_message, validate_pubkey,
-                  verify_seller_terms_signature, verify_transaction)
+                  token_amount_raw, verify_seller_terms_signature, verify_transaction)
 
 MERCHANT = "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu"
 BUYER = "So11111111111111111111111111111111111111112"
@@ -33,13 +34,13 @@ class Rpc:
             "meta": {
                 "err": None,
                 "preTokenBalances": [{"accountIndex": 2, "mint": self.row["mint"],
-                    "owner": MERCHANT, "uiTokenAmount": {"amount": "1000000"}},
+                    "owner": MERCHANT, "programId": TOKEN_PROGRAM_ID, "uiTokenAmount": {"amount": "1000000"}},
                     {"accountIndex": 3, "mint": self.row["mint"],
-                     "owner": BUYER, "uiTokenAmount": {"amount": "2000000"}}],
+                     "owner": BUYER, "programId": TOKEN_PROGRAM_ID, "uiTokenAmount": {"amount": "2000000"}}],
                 "postTokenBalances": [{"accountIndex": 2, "mint": self.row["mint"],
-                    "owner": MERCHANT, "uiTokenAmount": {"amount": str(1_000_000 + self.payment_amount)}},
+                    "owner": MERCHANT, "programId": TOKEN_PROGRAM_ID, "uiTokenAmount": {"amount": str(1_000_000 + self.payment_amount)}},
                     {"accountIndex": 3, "mint": self.row["mint"],
-                     "owner": BUYER, "uiTokenAmount": {"amount": str(2_000_000 - self.payment_amount)}}],
+                     "owner": BUYER, "programId": TOKEN_PROGRAM_ID, "uiTokenAmount": {"amount": str(2_000_000 - self.payment_amount)}}],
             },
             "transaction": {"message": {"accountKeys": [
                 {"pubkey": BUYER}, {"pubkey": self.row["reference_key"]},
@@ -74,17 +75,57 @@ class SaleTests(unittest.TestCase):
         order = create_order(
             self.db, product=PRODUCT, merchant_wallet=MERCHANT,
             idempotency_key="checkout-auction-123", buyer_wallet=BUYER,
-            accepted_terms_sha256=TERMS, price_usdc="75.50", auction_bid_id="bid-123",
+            accepted_terms_sha256=TERMS, price_usd="75.50", auction_bid_id="bid-123",
         )
         self.assertEqual(order["amount"], "75.50")
         self.assertEqual(order["amount_raw"], 75_500_000)
         self.assertIn("amount=75.50", order["solana_pay_uri"])
 
+    def test_mosul_order_converts_usd_and_records_quote(self):
+        product = Product("MOSUL-GENESIS-000001", "Mosul 1932", "digital-art-one-of-one",
+                          "149.00", 0, "v3", TERMS, payment_asset="MOSUL",
+                          payment_mint=MOSUL_MINT, payment_program_id=TOKEN_2022_PROGRAM_ID,
+                          payment_decimals=6)
+        quoted_at = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
+        order = create_order(
+            self.db, product=product, merchant_wallet=MERCHANT,
+            idempotency_key="mosul-checkout-1234", buyer_wallet=BUYER,
+            accepted_terms_sha256=TERMS, price_usd="75.50",
+            token_price_usd="0.0000025", token_quote_at=quoted_at,
+            quote_source="DEX Screener", quote_liquidity_usd="2500.00",
+            quote_pair_address="pool-address",
+        )
+        self.assertEqual(order["amount_raw"], 30_200_000_000_000)
+        self.assertEqual(order["amount"], "30200000.000000")
+        self.assertEqual(order["asset"], "MOSUL")
+        self.assertEqual(order["price_usd"], "75.50")
+        self.assertEqual(order["quote_source"], "DEX Screener")
+        self.assertIn("amount=30200000.000000", order["solana_pay_uri"])
+
+    def test_mosul_quote_is_required_and_must_be_fresh(self):
+        product = Product("MOSUL-GENESIS-000001", "Mosul 1932", "digital-art-one-of-one",
+                          "149.00", 0, "v3", TERMS, payment_asset="MOSUL",
+                          payment_mint=MOSUL_MINT, payment_program_id=TOKEN_2022_PROGRAM_ID,
+                          payment_decimals=6)
+        with self.assertRaisesRegex(ValueError, "fresh MOSUL/USD quote"):
+            create_order(self.db, product=product, merchant_wallet=MERCHANT,
+                         idempotency_key="mosul-checkout-old1", buyer_wallet=BUYER,
+                         accepted_terms_sha256=TERMS, price_usd="75.50")
+        self.assertEqual(token_amount_raw("1.00", "3", 6), 333334)
+
+    def test_transaction_rejects_wrong_token_program_for_same_mint(self):
+        order = self.order()
+        row = self.db.execute("SELECT * FROM orders WHERE id=?", (order["id"],)).fetchone()
+        tx = Rpc(row).transaction(SIGNATURE)
+        tx["meta"]["postTokenBalances"][0]["programId"] = TOKEN_2022_PROGRAM_ID
+        with self.assertRaisesRegex(ValueError, "wrong Solana token program"):
+            verify_transaction(tx, row)
+
     def test_dynamic_winning_bid_is_the_settled_and_recorded_price(self):
         order = create_order(
             self.db, product=PRODUCT, merchant_wallet=MERCHANT,
             idempotency_key="checkout-auction-dynamic", buyer_wallet=BUYER,
-            accepted_terms_sha256=TERMS, price_usdc="75.50",
+            accepted_terms_sha256=TERMS, price_usd="75.50",
         )
         row = self.db.execute("SELECT * FROM orders WHERE id=?", (order["id"],)).fetchone()
         result = confirm_order(
