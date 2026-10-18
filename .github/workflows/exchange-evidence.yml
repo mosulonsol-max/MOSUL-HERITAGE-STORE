@@ -24,6 +24,8 @@ jobs:
         with:
           python-version: '3.12'
       - name: Collect live public exchange evidence
+        env:
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
         run: python scripts/verify_exchange_evidence.py
       - name: Store timestamped raw evidence
         uses: actions/upload-artifact@v4
