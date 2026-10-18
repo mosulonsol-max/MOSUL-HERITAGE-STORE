@@ -10,6 +10,7 @@ import hashlib
 import json
 import re
 import argparse
+import zipfile
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -34,6 +35,42 @@ def _https(value: object) -> bool:
 
 def _gate(name: str, passed: bool, detail: str) -> dict:
     return {"name": name, "passed": bool(passed), "detail": detail}
+
+
+def _delivery_matches_product(path: Path, product: dict, assets: dict) -> bool:
+    """Check that the pinned ZIP actually contains this terms revision and master."""
+    try:
+        with zipfile.ZipFile(path) as archive:
+            names = set(archive.namelist())
+            master_name = "MOSUL-GENESIS-000001-Collector-Master.png"
+            required = {master_name, "certificate.json", "SHA256SUMS", "LICENSE.txt"}
+            if names != required or len(archive.infolist()) != len(required):
+                return False
+            # Bound decompression even if a supplied archive has a valid-looking header.
+            if any(info.file_size > 50_000_000 for info in archive.infolist()):
+                return False
+            files = {name: archive.read(name) for name in required}
+            certificate = json.loads(files["certificate.json"])
+            if not isinstance(certificate, dict):
+                return False
+            hashes = {
+                name: hashlib.sha256(files[name]).hexdigest()
+                for name in (master_name, "certificate.json", "LICENSE.txt")
+            }
+            sums = "".join(f"{hashes[name]}  {name}\n" for name in
+                           (master_name, "certificate.json", "LICENSE.txt"))
+            return (
+                files["SHA256SUMS"] == sums.encode("ascii")
+                and certificate.get("product_id") == product.get("id")
+                and certificate.get("terms_version") == product.get("terms_version")
+                and certificate.get("terms_sha256") == product.get("terms_sha256")
+                and certificate.get("collector_master_sha256") == hashes[master_name]
+                and hashes[master_name] == assets.get("collector_master", {}).get("sha256")
+                and certificate.get("public_preview_sha256") ==
+                assets.get("public_preview", {}).get("sha256")
+            )
+    except (OSError, ValueError, KeyError, zipfile.BadZipFile, json.JSONDecodeError):
+        return False
 
 
 def evaluate_readiness(*, product_path: str | Path, asset_manifest_path: str | Path,
@@ -90,6 +127,7 @@ def evaluate_readiness(*, product_path: str | Path, asset_manifest_path: str | P
         delivery and delivery.is_file()
         and SHA256_RE.fullmatch(expected_package_hash)
         and sha256_file(delivery) == expected_package_hash
+        and _delivery_matches_product(delivery, product, assets)
     )
     terms_gate = (
         assets.get("terms_version") == product.get("terms_version")
@@ -108,7 +146,7 @@ def evaluate_readiness(*, product_path: str | Path, asset_manifest_path: str | P
         _gate("collector_master", master_gate,
               "private Collector Master with dimensions and pinned SHA-256"),
         _gate("delivery_package", package_gate,
-              "private delivery ZIP exists and matches the approved SHA-256"),
+              "private ZIP hash, contents, master and certificate terms match this product"),
         _gate("seller_terms_signature", terms_gate,
               "seller wallet signature matches this product and exact terms hash"),
         _gate("seller_disclosure", seller_disclosure_complete,
