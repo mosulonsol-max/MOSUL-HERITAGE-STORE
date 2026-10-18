@@ -7,7 +7,7 @@ MOSUL HERITAGE is developing digital collectibles inspired by Mosul’s architec
 
 ## MOSUL token — verified facts
 
-As checked on Solscan on 12 October 2026, the candidate mint page displays:
+Solscan was checked on 12 October 2026; the extension detail below comes from a later 17–18 October Solana RPC snapshot:
 
 | Field | Explorer record |
 | --- | --- |
@@ -16,11 +16,11 @@ As checked on Solscan on 12 October 2026, the candidate mint page displays:
 | Current supply | 1,000,000,000 MOSUL |
 | Decimals | 6 |
 | Mint, freeze, update authorities | N/A for each |
-| Token Extensions | TRUE; exact extensions not enumerated here |
+| Token Extensions | RPC snapshot: `metadataPointer` and `tokenMetadata`; metadata update authority null |
 
 [Inspect the mint on Solscan](https://solscan.io/token/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump) · [Read the verification record](docs/TOKEN-VERIFICATION.md) · [Read the whitepaper](docs/WHITEPAPER.md)
 
-**Project association is not yet cryptographically proved.** The on-chain record does not by itself prove that MOSUL HERITAGE issued or controls this token or the displayed creator wallet. A signed statement from a project-controlled wallet is still required. The mint address is not a wallet or payment destination; do not send funds to it.
+**Project-to-mint statement verified on 17 October 2026.** The published [Ed25519 proof](docs/MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json) verifies control of wallet `EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu` over the exact signed statement identifying this mint as MOSUL HERITAGE's token. This proves wallet control and a public project declaration; it does not establish legal identity, beneficial ownership of other wallets, or exchange approval. The mint address is not a wallet or payment destination; do not send funds to it.
 
 ## Smart-contract status
 
@@ -32,17 +32,17 @@ The token is represented by a mint governed by Solana’s shared Token-2022 prog
 - **Product sales:** blocked; no item is currently for sale.
 - **NFT issuance:** not completed; no MOSUL HERITAGE NFT asset address is claimed.
 - **Tokenomics beyond the verified mint snapshot:** allocation, treasury, vesting, lock, and burn information is not independently verified here.
-- **Storefront automation:** not represented as live in this repository.
+- **Artwork preview automation:** the hourly generation and Pages deployment workflow completed successfully on 18 October 2026; this publishes watermarked previews, not sale-ready products. The X auto-post workflow was blocked by an account-credit error in its most recent inspected run.
 - **Public website:** GitHub Pages deployment is confirmed; the live wallet-proof page returned HTTP 200 in the 18 October 2026 evidence run. The site is a project preview and documentation record only. It does not provide live checkout, bidding, token payment, NFT minting, or product delivery. The sale API remains parked with `SALES_ENABLED=0`.
 
 ## Release gates
 
-1. Publish and independently verify the signed project-to-mint statement.
-2. Document relevant Token-2022 extensions and any owner-approved token allocation or treasury facts.
+1. Completed 17 October 2026: publish and independently verify the signed project-to-mint statement. Keep its public verification link available.
+2. Completed in the 17–18 October RPC snapshot: document observed Token-2022 extensions. Refresh before listing; publish owner-approved token allocation or treasury facts if supported.
 3. Complete product source, rights, logo, authenticity, and buyer-license review.
 4. Test secure checkout, transaction finality, duplicate-payment rejection, refunds, and delivery before enabling sales.
 5. If an NFT is issued, publish its verified mint transaction and asset address only after successful minting.
-6. Enable the public repository and GitHub Pages only after the project’s public-release settings are reviewed.
+6. Keep the public GitHub Pages preview current with dated evidence and test each release before publication.
 
 These are gates, not launch dates. No price, investment return, listing, sales, or launch date is promised.
 
@@ -55,9 +55,10 @@ A hash, certificate, signature, or watermark can support verification of a speci
 ## Files
 
 - [Token verification](docs/TOKEN-VERIFICATION.md): dated Solscan observations and binding limitations.
-- [Whitepaper v0.2](docs/WHITEPAPER.md): bilingual project, token, utility, status, and risk disclosures.
+- [Whitepaper v0.3](docs/WHITEPAPER.md): bilingual project, token, utility, status, and risk disclosures.
+- [Release readiness review](docs/RELEASE-READINESS-2026-10-18.md): verified functions, open gates, and evidence.
 
-Last reviewed: **12 October 2026**.
+Last reviewed: **18 October 2026**. The sale status remains preview-only.
 
 
 ## Governed AI engine

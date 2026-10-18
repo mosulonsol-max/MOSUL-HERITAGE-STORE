@@ -5,13 +5,19 @@
 - Bids require an Ed25519 wallet signature over the auction ID, amount, terms
   hash, one-time challenge, and expiry. Bid messages do not escrow funds.
 - Only after the auction closes does the highest valid bidder receive a
-  24-hour exact amount payment request. An expired winner is defaulted and the
-  next highest valid bid can be selected.
+  24-hour exact amount payment request. Creating that request requires a fresh,
+  single-use Ed25519 signature from the winning wallet over the exact bid,
+  amount, merchant, USDC mint, terms hash and order idempotency key. An expired
+  winner is defaulted and the next highest valid bid can be selected.
+- If the order response is lost, the same winning wallet can sign a new
+  challenge to recover the pending order with a rotated claim secret; an
+  address alone cannot reserve or recover the order.
 - The merchant wallet is a public receiving address supplied at deployment.
   No seed phrase or signing key is used by this service.
 - A payment settles only when a finalized Solana Mainnet transaction contains
-  the unique order reference and increases merchant-owned USDC balances by the
-  exact raw amount within the order validity window.
+  the unique order reference and exact on-chain order memo, increases
+  merchant-owned USDC balances by the exact raw amount, and debits the
+  winning bidder's USDC balance within the order validity window.
 - Order IDs, references, payment signatures, and product inventory are unique.
   The one-of-one product cannot be reserved twice or sold twice.
 - Delivery requires a paid order and an HMAC-authenticated token that expires

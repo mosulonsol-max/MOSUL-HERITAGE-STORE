@@ -8,7 +8,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from core import (Product, authorize_download, b58encode, confirm_order, connect,
+from core import (MEMO_PROGRAM, Product, authorize_download, b58encode, confirm_order, connect,
                   create_order, seller_terms_message, validate_pubkey,
                   verify_seller_terms_signature, verify_transaction)
 
@@ -44,7 +44,8 @@ class Rpc:
             "transaction": {"message": {"accountKeys": [
                 {"pubkey": BUYER}, {"pubkey": self.row["reference_key"]},
                 {"pubkey": "11111111111111111111111111111111"},
-            ]}},
+            ], "instructions": [{"programId": MEMO_PROGRAM,
+                                  "parsed": self.row["memo"]}]}},
         }
 
 
@@ -140,6 +141,27 @@ class SaleTests(unittest.TestCase):
         tx["transaction"]["message"]["accountKeys"] = []
         with self.assertRaises(ValueError):
             verify_transaction(tx, row)
+
+    def test_payment_requires_exact_on_chain_order_memo(self):
+        order = self.order()
+        row = self.db.execute("SELECT * FROM orders WHERE id=?", (order["id"],)).fetchone()
+        tx = Rpc(row).transaction(SIGNATURE)
+        tx["transaction"]["message"]["instructions"] = []
+        with self.assertRaisesRegex(ValueError, "exact order memo"):
+            verify_transaction(tx, row)
+        tx = Rpc(row).transaction(SIGNATURE)
+        tx["transaction"]["message"]["instructions"][0]["parsed"] = "MOSUL-SALE:wrong"
+        with self.assertRaisesRegex(ValueError, "exact order memo"):
+            verify_transaction(tx, row)
+        tx = Rpc(row).transaction(SIGNATURE)
+        tx["transaction"]["message"]["instructions"][0]["programId"] = "11111111111111111111111111111111"
+        with self.assertRaisesRegex(ValueError, "exact order memo"):
+            verify_transaction(tx, row)
+        tx = Rpc(row).transaction(SIGNATURE)
+        tx["transaction"]["message"]["instructions"][0] = {
+            "programId": MEMO_PROGRAM, "data": b58encode(row["memo"].encode("utf-8")),
+        }
+        verify_transaction(tx, row)
 
     def test_signature_cannot_be_replayed_for_second_sale(self):
         order = self.order()

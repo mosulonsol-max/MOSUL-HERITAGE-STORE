@@ -1,7 +1,8 @@
-# MOSUL HERITAGE — Whitepaper v0.2
+# MOSUL HERITAGE — Whitepaper v0.3
 
-**Public project draft · 12 October 2026**  
-**Status: Published facts are limited to the evidence linked below. Project-to-mint binding, allocation, treasury, and payment utility remain unverified or inactive.**
+**Public project draft · 18 October 2026**
+
+**Status: A signed wallet statement identifies the mint with the project. Allocation, treasury and payment utility remain unverified or inactive.**
 
 > This paper describes a cultural digital-collectibles project and a proposed future use of MOSUL as a payment option. It is not an offer to buy tokens, investment advice, or a promise of returns, liquidity, listings, sales, or appreciation.
 
@@ -9,7 +10,7 @@
 
 MOSUL HERITAGE is developing digital collectibles inspired by Mosul’s architecture, places, and cultural history. Each product should publish its classification, source and rights notes, production history, edition, buyer license, and release status before it is offered. An artwork’s cultural inspiration does not by itself make it a verified historical document or grant exclusive rights to the underlying source material.
 
-The project intends to explore MOSUL payments for selected products only after the token’s project association is proved, product rights are reviewed, and a secure checkout and delivery flow passes end-to-end tests. That utility is planned and is not currently active.
+The project intends to explore MOSUL payments for selected products after product rights are reviewed and a secure checkout and delivery flow passes end-to-end tests. That utility is planned and is not currently active. A separate USDC auction checkout candidate remains disabled and is not MOSUL payment functionality.
 
 ## 2. MOSUL mint and smart-contract description
 
@@ -17,7 +18,7 @@ The candidate mint reviewed for this paper is:
 
 `6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump`
 
-Solscan’s mint page, checked on 12 October 2026, displays the name Mosul (MOSUL), a current supply of **1,000,000,000**, **6 decimals**, and the **Token-2022** owner program (`TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`). The explorer displays **N/A** for mint, freeze, and update authorities. It also displays Token Extensions: TRUE; the specific extension set is not enumerated in this paper.
+Solscan’s mint page, checked on 12 October 2026, displayed the name Mosul (MOSUL), a supply of **1,000,000,000**, **6 decimals**, and the **Token-2022** owner program (`TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`). The explorer displayed **N/A** for mint, freeze, and update authorities. A later Solana RPC snapshot identified the `metadataPointer` and `tokenMetadata` extensions with null metadata update authority, mint authority and freeze authority. These are dated observations; recheck before reliance.
 
 The token is a mint account governed by Solana’s shared Token-2022 program. The Token-2022 program address is not a custom MOSUL program. This repository does not identify a separate MOSUL-specific smart-contract program or publish custom program source code. Accordingly, MOSUL should not be described as having a custom smart contract unless verifiable program evidence is later published.
 
@@ -25,9 +26,9 @@ The mint is an identifier, **not a wallet or merchant payment address**. Do not 
 
 ## 3. Project binding
 
-The on-chain mint configuration is verifiable independently through the explorer link below. That proves facts about the token account; it does not prove that MOSUL HERITAGE issued, owns, controls, endorses, or receives funds from it. Solscan displays creator `EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu`, but that label alone does not prove the wallet is controlled by the project.
+The on-chain mint configuration is verifiable independently through the explorer link below. Solscan displays creator `EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu`. On 17 October 2026 that wallet signed a [public statement](MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json) identifying the exact mint and network as the project's MOSUL token. Its Ed25519 signature was verified independently. This demonstrates control of the signing key and the signer's public declaration.
 
-Project binding remains **NOT VERIFIED** until the project publishes an owner-approved statement naming this exact mint and the network, and the statement is signed by a project-controlled wallet and independently verified. No allocation, treasury, lock, burn, or vesting claim is made here without supporting evidence.
+The signature does not establish the signer's legal identity, ownership of other wallets, the token's original distribution, or exchange approval. No allocation, treasury, lock, burn, or vesting claim is made here without supporting evidence.
 
 ## 4. Token facts and open items
 
@@ -38,9 +39,9 @@ Project binding remains **NOT VERIFIED** until the project publishes an owner-ap
 | Supply shown by explorer | 1,000,000,000 MOSUL |
 | Decimals shown by explorer | 6 |
 | Mint, freeze, update authorities | Explorer displays N/A for each |
-| Token Extensions | Explorer says TRUE; exact extensions not documented here |
-| Project binding | Not verified; signed owner statement required |
-| Allocation / treasury / vesting / burn | No verified schedule or project-controlled wallet evidence published |
+| Token Extensions | RPC snapshot: `metadataPointer` and `tokenMetadata`; null metadata update authority |
+| Project statement | Wallet-signed exact mint declaration independently verified 17 October 2026; legal identity outside its scope |
+| Allocation / treasury / vesting / burn | Wallet signature published; no verified allocation schedule, treasury designation, vesting or burn claim |
 | Checkout / token payment | Inactive; no completed live payment test |
 | NFT / product sales | No MOSUL HERITAGE NFT or product is represented here as minted or for sale |
 
@@ -54,9 +55,9 @@ The first product record must remain blocked until source and rights review, cre
 
 ## 6. Release gates
 
-1. Publish and verify the signed project-to-mint binding statement.
+1. Completed 17 October 2026: publish and verify the signed project-to-mint statement; preserve its verification record.
 2. Publish owner-approved allocation, treasury, and any vesting or lock evidence, or clearly state that no such arrangements exist.
-3. Enumerate relevant Token-2022 extensions and preserve the evidence record.
+3. Completed in the 17–18 October RPC snapshot: enumerate the observed Token-2022 extensions and preserve the evidence record; refresh it before a listing application.
 4. Complete source, rights, logo, and buyer-license review for each product.
 5. Test checkout, finality, duplicate-payment protection, refunds, and delivery before enabling sales.
 6. If an NFT is planned, publish its standard, metadata, mint transaction, and verifiable asset address only after mint completion.
@@ -75,18 +76,21 @@ Nothing here guarantees token value, liquidity, listings, product demand, revenu
 - [Solana token documentation](https://solana.com/docs/tokens)
 - [Solana Token-2022 extensions](https://solana.com/docs/tokens/extensions)
 - [On-chain verification record](TOKEN-VERIFICATION.md)
+- [Signed project-to-mint statement](MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json)
 
 ## Change log
 
+- **v0.3 — 18 October 2026:** Recorded the verified wallet signature and RPC extension snapshot; clarified that USDC checkout is disabled and MOSUL payment remains planned.
 - **v0.2 — 12 October 2026:** Updated token facts from a live Solscan inspection. Explicitly separates verified mint configuration from unverified project binding and proposed utility.
 - **v0.1 — 11 October 2026:** Initial public draft.
 
 ---
 
-# الورقة البيضاء — MOSUL HERITAGE v0.2
+# الورقة البيضاء — MOSUL HERITAGE v0.3
 
-**مسودة مشروع عامة · 12 أكتوبر 2026**  
-**الحالة: الحقائق المنشورة محدودة بالأدلة المرتبطة أدناه. ربط العملة بالمشروع والتوزيع والخزينة ومنفعة الدفع لم تُثبت أو لم تُفعّل بعد.**
+**مسودة مشروع عامة · 18 أكتوبر 2026**
+
+**الحالة: يوجد بيان موقّع من محفظة يعرّف الـMint بعملة المشروع. يظل التوزيع والخزينة ومنفعة الدفع غير متحقق منها أو غير مفعلة.**
 
 > تصف هذه الورقة مشروعًا للمقتنيات الرقمية الثقافية واستخدامًا مستقبليًا مقترحًا لعملة MOSUL كوسيلة دفع. وهي ليست عرضًا لشراء العملة أو نصيحة استثمارية أو وعدًا بالعائد أو السيولة أو الإدراج أو المبيعات أو ارتفاع السعر.
 
@@ -94,7 +98,7 @@ Nothing here guarantees token value, liquidity, listings, product demand, revenu
 
 يطوّر MOSUL HERITAGE مقتنيات رقمية مستوحاة من عمارة الموصل وأماكنها وتاريخها الثقافي. ينبغي أن ينشر كل منتج تصنيفه ومصادره وملاحظات الحقوق وسجل الإنتاج والطبعة وترخيص المشتري وحالة الإطلاق قبل عرضه. الاستلهام الثقافي وحده لا يجعل العمل وثيقة تاريخية موثقة ولا يمنح حقوقًا حصرية على المادة المصدرية.
 
-يدرس المشروع إتاحة الدفع بعملة MOSUL لمنتجات مختارة فقط بعد إثبات ارتباط العملة بالمشروع ومراجعة حقوق المنتجات واجتياز نظام دفع وتسليم آمن اختبارات كاملة. هذه المنفعة مخطط لها وغير مفعّلة حاليًا.
+يدرس المشروع إتاحة الدفع بعملة MOSUL لمنتجات مختارة بعد مراجعة حقوق المنتجات واجتياز نظام دفع وتسليم آمن اختبارات كاملة. هذه المنفعة مخطط لها وغير مفعّلة حاليًا. يوجد نموذج أولي منفصل لمزاد ودفع USDC لكنه معطل، ولا يمثل وظيفة للدفع بعملة MOSUL.
 
 ## 2. الـMint ووصف العقد الذكي
 
@@ -102,7 +106,7 @@ Nothing here guarantees token value, liquidity, listings, product demand, revenu
 
 `6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump`
 
-تعرض صفحة الـMint في Solscan، التي فُحصت في 12 أكتوبر 2026، الاسم Mosul (MOSUL)، ومعروضًا حاليًا قدره **1,000,000,000**، و**6 منازل عشرية**، وبرنامج **Token-2022** مالكًا للحساب (`TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`). وتعرض N/A لكل من صلاحيات السكّ والتجميد والتحديث. كما تعرض Token Extensions: TRUE؛ لكن هذه الورقة لا تسرد أنواع الامتدادات تفصيلًا.
+عرضت صفحة الـMint في Solscan، التي فُحصت في 12 أكتوبر 2026، الاسم Mosul (MOSUL)، ومعروضًا قدره **1,000,000,000**، و**6 منازل عشرية**، وبرنامج **Token-2022** مالكًا للحساب (`TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`). وعرضت N/A لكل من صلاحيات السكّ والتجميد والتحديث. حددت لقطة RPC لاحقة امتدادي `metadataPointer` و`tokenMetadata` مع غياب صلاحيات تحديث البيانات والسكّ والتجميد. هذه ملاحظات مؤرخة يلزم تحديثها قبل الاعتماد عليها.
 
 العملة حساب Mint يديره برنامج Token-2022 المشترك على سولانا. عنوان Token-2022 ليس برنامجًا مخصصًا لـMOSUL. لا يحدد هذا المستودع برنامج عقد ذكي منفصلًا خاصًا بـMOSUL ولا ينشر مصدر برنامج مخصص. لذلك لا ينبغي وصف MOSUL بأنها تملك عقدًا ذكيًا مخصصًا ما لم تُنشر لاحقًا أدلة قابلة للتحقق على وجوده.
 
@@ -110,9 +114,9 @@ Nothing here guarantees token value, liquidity, listings, product demand, revenu
 
 ## 3. ربط العملة بالمشروع
 
-يمكن التحقق مستقلًا من إعدادات الـMint على الشبكة عبر رابط المستكشف أدناه. لكن ذلك يثبت حقائق عن حساب العملة ولا يثبت أن MOSUL HERITAGE أصدرها أو يملكها أو يتحكم بها أو يقرّها أو يستلم أموالها. تعرض Solscan منشئًا بالعنوان `EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu`، لكن هذا التصنيف وحده لا يثبت أن المحفظة تحت سيطرة المشروع.
+يمكن التحقق مستقلًا من إعدادات الـMint على الشبكة عبر رابط المستكشف أدناه. تعرض Solscan منشئًا بالعنوان `EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu`. وقّعت هذه المحفظة في 17 أكتوبر 2026 [بيانًا عامًا](MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json) يحدد الـMint والشبكة وعملة المشروع، وتم التحقق من توقيع Ed25519 استقلاليًا. يثبت ذلك السيطرة على مفتاح التوقيع ونشر تصريح صاحب المحفظة.
 
-حالة الربط بالمشروع **غير متحقق منها** حتى ينشر المشروع بيانًا معتمدًا من المالك يذكر الـMint والشبكة تحديدًا، ويوقع المالك البيان بمحفظة يسيطر عليها المشروع ثم يتم التحقق من التوقيع استقلاليًا. لا ندعي وجود توزيع أو خزينة أو قفل أو حرق أو استحقاق من دون أدلة مؤيدة.
+لا يثبت التوقيع الهوية القانونية للموقّع، أو ملكية المحافظ الأخرى، أو التوزيع الأصلي للعملة، أو موافقة أي منصة. لا ندعي وجود توزيع أو خزينة أو قفل أو حرق أو استحقاق من دون أدلة مؤيدة.
 
 ## 4. حقائق العملة والبنود المفتوحة
 
@@ -123,9 +127,9 @@ Nothing here guarantees token value, liquidity, listings, product demand, revenu
 | المعروض الظاهر في المستكشف | 1,000,000,000 MOSUL |
 | المنازل العشرية الظاهرة | 6 |
 | صلاحيات السكّ والتجميد والتحديث | يعرض المستكشف N/A لكل منها |
-| امتدادات Token-2022 | يقول المستكشف TRUE؛ لم توثق امتداداتها المحددة هنا |
-| ارتباط العملة بالمشروع | غير متحقق؛ يلزم بيان مالك موقّع |
-| التوزيع والخزينة والاستحقاق والحرق | لا يوجد جدول متحقق أو دليل منشور لمحفظة يسيطر عليها المشروع |
+| امتدادات Token-2022 | لقطة RPC: `metadataPointer` و`tokenMetadata`؛ صلاحية تحديث البيانات غير موجودة |
+| بيان المشروع | تحقق مستقلًا من توقيع المحفظة المحدد للـMint في 17 أكتوبر؛ لا يثبت الهوية القانونية |
+| التوزيع والخزينة والاستحقاق والحرق | نُشر توقيع المحفظة؛ ولا يوجد جدول توزيع متحقق أو تحديد مثبت للخزينة أو ادعاء استحقاق أو حرق |
 | الدفع بالعملة | غير مفعّل؛ لا يوجد اختبار دفع فعلي مكتمل |
 | NFT أو مبيعات منتجات | لا تدعي هذه الورقة إصدار NFT خاصًا بـMOSUL HERITAGE أو وجود منتج معروض للبيع |
 
@@ -139,9 +143,9 @@ Nothing here guarantees token value, liquidity, listings, product demand, revenu
 
 ## 6. بوابات الإطلاق
 
-1. نشر بيان الربط الموقّع بين المشروع والـMint والتحقق منه.
+1. اكتمل في 17 أكتوبر 2026: نشر بيان ارتباط المشروع بالـMint والتحقق من توقيعه وحفظ سجله.
 2. نشر التوزيع والخزينة وأدلة الاستحقاق أو القفل المعتمدة من المالك، أو التصريح بوضوح بعدم وجودها.
-3. توثيق امتدادات Token-2022 ذات الصلة وحفظ سجل الأدلة.
+3. اكتمل في لقطة RPC بتاريخ 17–18 أكتوبر: توثيق الامتدادات المرصودة وحفظ الأدلة؛ تُحدّث قبل طلب الإدراج.
 4. إكمال مراجعة المصدر والحقوق والشعار وترخيص المشتري لكل منتج.
 5. اختبار الدفع ونهائية المعاملة ومنع الدفع المكرر والاسترداد والتسليم قبل فتح البيع.
 6. إذا كان هناك NFT مخطط له، نشر معياره وبياناته الوصفية ومعاملة السكّ وعنوان الأصل القابل للتحقق بعد إتمام السكّ فقط.
@@ -160,8 +164,10 @@ Nothing here guarantees token value, liquidity, listings, product demand, revenu
 - [وثائق رموز سولانا](https://solana.com/docs/tokens)
 - [امتدادات Token-2022 في سولانا](https://solana.com/docs/tokens/extensions)
 - [سجل التحقق على السلسلة](TOKEN-VERIFICATION.md)
+- [البيان الموقّع الذي يحدد الـMint](MOSUL-WALLET-PROOF-VERIFIED-2026-10-17.json)
 
 ## سجل التغييرات
 
+- **v0.3 — 18 أكتوبر 2026:** إضافة التوقيع المتحقق منه ولقطة الامتدادات عبر RPC؛ توضيح أن نموذج USDC معطل وأن دفع MOSUL مخطط له.
 - **v0.2 — 12 أكتوبر 2026:** تحديث حقائق العملة بعد فحص مباشر لـSolscan، وفصل إعدادات الـMint المتحقق منها عن ربط المشروع والمنفعة المقترحة غير المثبتة.
 - **v0.1 — 11 أكتوبر 2026:** المسودة العامة الأولى.

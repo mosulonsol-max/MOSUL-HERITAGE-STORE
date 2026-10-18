@@ -1,5 +1,5 @@
 # MOSUL — Exchange application field answers
-Prepared 17 October 2026. **NOT SUBMITTED.** Public project facts only. Applicant identity and KYC must be entered directly into private exchange forms.
+Prepared 17 October 2026; reviewed 18 October. **Draft answers; official submission status is not conclusively reconciled. Do not resubmit to OKX until its prior reported success screen is checked against the official account or acknowledgement.** Public project facts only. Applicant identity and KYC belong in private exchange forms.
 
 ## MEXC: Project Information (official form)
 
@@ -44,7 +44,7 @@ Official form: https://www.okx.com/token-listing-apply
 4. Owner declares one MOSUL-holding wallet only. Verify top holders, historical token distribution, any custody arrangements, allocation/treasury obligations and vesting independently. Do not equate current wallet balance with original founder allocation.
 5. Obtain timestamped real trading pairs, exchange listings, liquidity and 24h volume.
 6. Owner completes private KYC and accepts official exchange terms.
-7. Submit each form and record acknowledgement IDs. **Neither form has been submitted.**
+7. Reconcile any prior submission on each official portal and preserve acknowledgement IDs, URLs and timestamps. **No official acknowledgement is retained here; absence of one does not prove non-submission. Avoid duplicate OKX submission.**
 
 **Do not make public claims of listing, approval, secured financing, or exchange partnership.**
 
@@ -55,3 +55,11 @@ Live machine-collected JSON: https://github.com/mosulonsol-max/MOSUL-HERITAGE-ST
 ## Additional verified market evidence — 2026-10-17T19:42:05Z
 
 Source: GitHub Actions run https://github.com/mosulonsol-max/MOSUL-HERITAGE-STORE/actions/runs/39063579479/artifacts/12112297878 (raw API snapshot). GeckoTerminal Solana token-pools endpoint returned one MOSUL/SOL pool, address `FZQEzikp7rkjaggBkeM4uW8RPT2seRBWKWboQLGW1VZq`, created `2026-10-10T21:32:52Z`, reported pool reserve **$2,372.0872**, reference token price **$0.00000312730565**, and reported 24h pool volume **$0.0**. This is a low-liquidity snapshot, not guaranteed executable depth or complete all-venue volume. DexScreener returned zero pools for this mint in the same snapshot. Largest-token-accounts RPC still failed (429/403/400); top holder concentration **unknown, not 0%**. Pump.fun frontend API returned 404/403, so bonding curve status remains unverified. Never represent the missing results as zero holdings or zero launchpad activity.
+
+## Supplemental live market and holder report — 2026-10-18 13:12 UTC
+
+Sources queried directly at 13:12:07 UTC: [RugCheck token report API](https://api.rugcheck.xyz/v1/tokens/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump/report) and [GeckoTerminal token-pools API](https://api.geckoterminal.com/api/v2/networks/solana/tokens/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump/pools). Both returned one MOSUL/SOL market, `FZQEzikp7rkjaggBkeM4uW8RPT2seRBWKWboQLGW1VZq`. GeckoTerminal reported a $2,372.0872 pool reserve and $0.00 24h volume, with no swaps reported in its 24h transaction counters. RugCheck reported 2 holders/accounts: a pool-associated account at 99.2108% and the creator wallet at 0.7892%. These are provider-reported account figures, not verified beneficial-owner distribution; the RPC largest-account call remains rate-limited.
+
+The two sources disagree on price/valuation. RugCheck's market record lists `0.222291323 SOL` on the quote side (about **$23.06** at its quote price) and `785,207,859.59012 MOSUL` in the associated token vault, while GeckoTerminal's reserve estimate marks the pool at **$2,372.09**. Do not describe the marked token-side reserve or total pool reserve as executable sell depth. The pool's quote reserve is small, no 24h trades were reported, and exact executable exit depth has not been independently simulated. The RugCheck top-account result (992,107,859.59012 MOSUL) also does not match its market vault token amount (785,207,859.59012); this discrepancy must be reconciled against finalized Solana RPC before presenting a definitive concentration or liquidity claim to an exchange.
+
+**Updated status:** holder information is now available as a third-party indexed snapshot, but holder concentration and executable liquidity remain **partially unverified** pending finalized RPC corroboration and a trade-depth check. No holder or liquidity figure should be represented as independently chain-verified from this snapshot alone.
