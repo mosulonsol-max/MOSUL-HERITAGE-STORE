@@ -33,7 +33,7 @@ The token is represented by a mint governed by Solana’s shared Token-2022 prog
 - **NFT issuance:** not completed; no MOSUL HERITAGE NFT asset address is claimed.
 - **Tokenomics beyond the verified mint snapshot:** allocation, treasury, vesting, lock, and burn information is not independently verified here.
 - **Storefront automation:** not represented as live in this repository.
-- **Public website:** GitHub Pages is not yet confirmed as deployed. The repository is the intended canonical project record once its public release and hosting are configured.
+- **Public website:** GitHub Pages deployment is confirmed; the live wallet-proof page returned HTTP 200 in the 18 October 2026 evidence run. The site is a project preview and documentation record only. It does not provide live checkout, bidding, token payment, NFT minting, or product delivery. The sale API remains parked with `SALES_ENABLED=0`.
 
 ## Release gates
 
