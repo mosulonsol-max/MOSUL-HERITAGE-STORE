@@ -1,12 +1,12 @@
 {
-  "timestamp_utc": "2026-10-18T01:15:40.052524+00:00",
+  "timestamp_utc": "2026-10-18T01:21:15.850580+00:00",
   "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
   "creator_wallet": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
   "sources": {
     "token_supply": {
       "context": {
         "apiVersion": "4.3.0",
-        "slot": 458248565
+        "slot": 458250115
       },
       "value": {
         "amount": "1000000000000000",
@@ -58,7 +58,7 @@
     },
     "creator_wallet_token_accounts": {
       "context": {
-        "slot": 458248599,
+        "slot": 458250149,
         "apiVersion": "4.3.0-beta.2"
       },
       "value": [
@@ -144,6 +144,7 @@
     }
   ],
   "limitations": [
+    "SOLANA_RPC_URL secret is not configured; using the shared public Solana RPC, which may return HTTP 403/429.",
     "DEX Screener liquidity and 24h volume are per-pool estimates and may not cover all venues. Do not sum duplicate pools or confuse FDV with market cap.",
     "GeckoTerminal pools may differ from DexScreener; pool reserve is not necessarily executable liquidity.",
     "Explorer creator labels are not cryptographic evidence of legal project ownership.",
