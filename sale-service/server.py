@@ -36,6 +36,7 @@ SELLER_LEGAL_NAME = os.environ.get("SELLER_LEGAL_NAME", "")
 SELLER_TRADE_NAME = os.environ.get("SELLER_TRADE_NAME", "MOSUL HERITAGE STORE")
 SELLER_COUNTRY = os.environ.get("SELLER_COUNTRY", "")
 SELLER_ADDRESS = os.environ.get("SELLER_ADDRESS", "")
+SELLER_ONLINE_ONLY = os.environ.get("SELLER_ONLINE_ONLY", "0") == "1"
 SELLER_SUPPORT_EMAIL = os.environ.get("SELLER_SUPPORT_EMAIL", "")
 SELLER_TERMS_SIGNED_AT = os.environ.get("SELLER_TERMS_SIGNED_AT", "")
 SELLER_TERMS_SIGNATURE_B64 = os.environ.get("SELLER_TERMS_SIGNATURE_B64", "")
@@ -80,6 +81,8 @@ def seller_signature_valid() -> bool:
 
 
 def readiness_snapshot() -> dict:
+    seller_contact = SELLER_ADDRESS or ("Online-only store; no customer-facing physical storefront"
+                                        if SELLER_ONLINE_ONLY else "")
     return evaluate_readiness(
         product_path=PRODUCT_PATH,
         asset_manifest_path=ASSET_MANIFEST_PATH,
@@ -88,8 +91,8 @@ def readiness_snapshot() -> dict:
         auction_configured=AUCTION is not None,
         seller_disclosure_complete=all((
             SELLER_LEGAL_NAME, SELLER_TRADE_NAME, SELLER_COUNTRY,
-            SELLER_ADDRESS, SELLER_SUPPORT_EMAIL,
-        )),
+            seller_contact, SELLER_SUPPORT_EMAIL,
+        )) and (bool(SELLER_ADDRESS) or SELLER_ONLINE_ONLY),
     )
 
 
@@ -152,7 +155,9 @@ class Handler(BaseHTTPRequestHandler):
                                     "seller": ({"trade_name": SELLER_TRADE_NAME,
                                                "name": SELLER_LEGAL_NAME,
                                                "country": SELLER_COUNTRY,
-                                               "address": SELLER_ADDRESS,
+                                               "contact_location": SELLER_ADDRESS or (
+                                                   "Online-only store; no customer-facing physical storefront"
+                                                   if SELLER_ONLINE_ONLY else ""),
                                                "support_email": SELLER_SUPPORT_EMAIL}
                                                if SALES_ENABLED else None)})
         if parsed.path == "/readiness":

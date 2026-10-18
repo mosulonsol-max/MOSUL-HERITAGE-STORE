@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install runtime dependencies
-        run: python -m pip install --disable-pip-version-check -r requirements.txt -r sale-service/requirements.txt
+        run: python -m pip install --disable-pip-version-check -r requirements.txt -r sale-service/requirements.txt -r payment-service/requirements-devnet-test.txt
       - name: Test policy, evidence ledger, registry, and orchestrator
         env:
           PYTHONPATH: ai-engine

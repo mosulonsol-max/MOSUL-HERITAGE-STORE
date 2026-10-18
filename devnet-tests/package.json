@@ -1,0 +1,15 @@
+{
+  "name": "mosul-heritage-devnet-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:core-nft": "node mosul-core-nft-transfer.mjs"
+  },
+  "dependencies": {
+    "@metaplex-foundation/mpl-core": "1.10.0",
+    "@metaplex-foundation/umi": "1.6.0",
+    "@metaplex-foundation/umi-bundle-defaults": "1.6.0",
+    "@solana/web3.js": "1.99.0",
+    "bs58": "6.0.0"
+  }
+}
