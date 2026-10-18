@@ -1,12 +1,12 @@
 {
-  "timestamp_utc": "2026-10-18T13:02:58.194898+00:00",
+  "timestamp_utc": "2026-10-18T14:30:40.539801+00:00",
   "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
   "creator_wallet": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
   "sources": {
     "token_supply": {
       "context": {
         "apiVersion": "4.3.0",
-        "slot": 458444377
+        "slot": 458468666
       },
       "value": {
         "amount": "1000000000000000",
@@ -58,7 +58,7 @@
     },
     "creator_wallet_token_accounts": {
       "context": {
-        "slot": 458444409,
+        "slot": 458468697,
         "apiVersion": "4.3.0-beta.2"
       },
       "value": [
@@ -201,6 +201,55 @@
         }
       }
     },
+    "rugcheck_report": {
+      "provider": "RugCheck public report API (third-party indexer)",
+      "source_url": "https://api.rugcheck.xyz/v1/tokens/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump/report",
+      "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
+      "reported_total_holders": 2,
+      "top_token_accounts": [
+        {
+          "address": "9xLMXiS5WPR12CGsp9VvVwKBcfsL7ssAgRcrUCmK2zHy",
+          "amount": 992107859590120,
+          "decimals": 6,
+          "pct": 99.210785959012,
+          "uiAmount": 992107859.59012,
+          "uiAmountString": "992107859.59012",
+          "owner": "FZQEzikp7rkjaggBkeM4uW8RPT2seRBWKWboQLGW1VZq",
+          "insider": false
+        },
+        {
+          "address": "2zczS4yLnXudGUnbP1hCBKtghzft6XMy8sULFxNLaYdY",
+          "amount": 7892140409880,
+          "decimals": 6,
+          "pct": 0.7892140409880001,
+          "uiAmount": 7892140.40988,
+          "uiAmountString": "7892140.40988",
+          "owner": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
+          "insider": false
+        }
+      ],
+      "markets": [
+        {
+          "pubkey": "FZQEzikp7rkjaggBkeM4uW8RPT2seRBWKWboQLGW1VZq",
+          "market_type": "pump_fun",
+          "mint_a": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
+          "mint_b": "So11111111111111111111111111111111111111112",
+          "token_vault": "BRW3uCTWoBEqkoXzFGD5vV7cRdxDfjLZq982TUX1eGJP",
+          "quote_vault": "FZQEzikp7rkjaggBkeM4uW8RPT2seRBWKWboQLGW1VZq",
+          "token_reserve_raw": 785207859590120,
+          "quote_reserve_raw": 222291323,
+          "quote_reserve_mint": "So11111111111111111111111111111111111111112",
+          "quote_reserve_usd": 22.715305119254104,
+          "reported_lp_locked_pct": 100,
+          "lp_mint": "11111111111111111111111111111111"
+        }
+      ],
+      "reported_total_market_liquidity_usd": 3199.0280427553075,
+      "reported_total_stable_liquidity_usd": 22.715305119254104,
+      "reported_price_usd": 4.045187142286241e-06,
+      "rugcheck_detected_at": "2026-10-10T21:32:52.865472382Z",
+      "limitation": "Indexer output; token accounts are not beneficial owners. Cross-check balances against finalized Solana RPC; pool reserve value is not executable sell depth."
+    },
     "signature_page_https": {
       "url": "https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/wallet-proof.html",
       "http_status": 200,
@@ -234,15 +283,19 @@
     "No application is submitted by this workflow.",
     "GeckoTerminal public API is beta and rate-limited; absent or null fields remain unverified rather than being inferred.",
     "GeckoTerminal holder statistics may be null or incomplete; token-account concentration still requires a working Solana RPC or a documented holder-data provider.",
+    "RugCheck is a third-party indexed report used only as supplemental holder and market evidence; its top token accounts are not beneficial owners and must be corroborated against finalized Solana RPC before exchange submission.",
     "Pump.fun launchpad state is reported from GeckoTerminal’s token endpoint; verify material trading or migration claims against on-chain state."
   ],
   "completeness": {
     "status": "partial",
     "missing_fields": [
-      "largest token accounts and token-account concentration",
-      "holder count and holder distribution"
+      "finalized Solana RPC reconciliation of indexed holder distribution"
     ],
+    "holder_distribution_reconciliation": {
+      "status": "unavailable",
+      "note": "Both nonempty account lists are required."
+    },
     "observed_volume_24h_usd": "0.0",
-    "note": "A measured zero volume is reported as zero; it is not treated as missing data."
+    "note": "A measured zero volume is reported as zero; it is not treated as missing data. Completeness describes collected fields, not exchange approval or beneficial ownership."
   }
 }
