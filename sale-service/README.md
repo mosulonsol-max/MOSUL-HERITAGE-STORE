@@ -4,7 +4,8 @@ This directory contains a fail-closed timed ascending auction and checkout for
 the one-of-one product MOSUL-GENESIS-000001. Bidders sign offers with their own
 Solana wallets; a bid does not transfer or escrow funds. After auction close,
 the highest valid bidder receives a 24-hour request for the winning bid amount
-in USDC. The service verifies the finalized Mainnet transfer, prevents replay
+in USDC after signing a fresh, single-use winner-order challenge. The service
+verifies the finalized Mainnet transfer, prevents replay
 and duplicate sale, records the completed price, and releases a private ZIP
 through a short-lived, download-limited token.
 

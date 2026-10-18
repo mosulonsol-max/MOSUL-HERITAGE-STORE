@@ -22,6 +22,10 @@ def fetch(url,payload=None):
             if e.code not in (429,500,502,503,504) or attempt==2:
                 raise
             time.sleep(2*(attempt+1))
+        except urllib.error.URLError:
+            if attempt==2:
+                raise
+            time.sleep(2*(attempt+1))
 
 def rpc(method,params):
     j=fetch(RPC,{"jsonrpc":"2.0","id":1,"method":method,"params":params})
@@ -110,6 +114,42 @@ def gecko_token_info():
         raise ValueError("GeckoTerminal token-info response did not match the configured mint")
     return {"provider":"GeckoTerminal public API","source_url":url,"fields":fields}
 
+def rugcheck_report():
+    # Independent indexed view of token accounts, pool accounts and market reserves.
+    # This is supplementary evidence; it does not replace finalized Solana RPC.
+    url="https://api.rugcheck.xyz/v1/tokens/"+MINT+"/report"
+    j=fetch(url)
+    if j.get("mint") != MINT:
+        raise ValueError("RugCheck response did not match the configured mint")
+    markets=[]
+    for m in j.get("markets") or []:
+        liq_a=m.get("liquidityAAccount") or {}
+        liq_b=m.get("liquidityBAccount") or {}
+        lp=m.get("lp") or {}
+        markets.append({
+            "pubkey":m.get("pubkey"),"market_type":m.get("marketType"),
+            "mint_a":m.get("mintA"),"mint_b":m.get("mintB"),
+            "token_vault":m.get("liquidityA"),"quote_vault":m.get("liquidityB"),
+            "token_reserve_raw":liq_a.get("amount"),
+            "quote_reserve_raw":liq_b.get("amount"),
+            "quote_reserve_mint":liq_b.get("mint"),
+            "quote_reserve_usd":lp.get("quoteUSD"),
+            "reported_lp_locked_pct":lp.get("lpLockedPct"),
+            "lp_mint":m.get("mintLP")
+        })
+    return {
+        "provider":"RugCheck public report API (third-party indexer)",
+        "source_url":url,"mint":j.get("mint"),
+        "reported_total_holders":j.get("totalHolders"),
+        "top_token_accounts":j.get("topHolders") or [],
+        "markets":markets,
+        "reported_total_market_liquidity_usd":j.get("totalMarketLiquidity"),
+        "reported_total_stable_liquidity_usd":j.get("totalStableLiquidity"),
+        "reported_price_usd":j.get("price"),
+        "rugcheck_detected_at":j.get("detectedAt"),
+        "limitation":"Indexer output; token accounts are not beneficial owners. Cross-check balances against finalized Solana RPC; pool reserve value is not executable sell depth."
+    }
+
 def website():
     url="https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/wallet-proof.html"
     req=urllib.request.Request(url,headers={"User-Agent":"MOSUL-ReadOnly-Verification/1.0"})
@@ -125,6 +165,7 @@ capture("dex_pairs",dex_pairs)
 capture("gecko_pools",gecko_pools)
 capture("pumpfun_coin",pumpfun_coin)
 capture("gecko_token_info",gecko_token_info)
+capture("rugcheck_report",rugcheck_report)
 capture("signature_page_https",website)
 REPORT["limitations"].extend([
 "Explorer creator labels are not cryptographic evidence of legal project ownership.",
@@ -134,17 +175,20 @@ REPORT["limitations"].extend([
 "No application is submitted by this workflow.",
 "GeckoTerminal public API is beta and rate-limited; absent or null fields remain unverified rather than being inferred.",
 "GeckoTerminal holder statistics may be null or incomplete; token-account concentration still requires a working Solana RPC or a documented holder-data provider.",
+"RugCheck is a third-party indexed report used only as supplemental holder and market evidence; its top token accounts are not beneficial owners and must be corroborated against finalized Solana RPC before exchange submission.",
 "Pump.fun launchpad state is reported from GeckoTerminal’s token endpoint; verify material trading or migration claims against on-chain state."
 ])
 def completeness_status():
     sources=REPORT["sources"]
     missing=[]
-    if "largest_token_accounts" not in sources:
+    rug=(sources.get("rugcheck_report") or {})
+    top_accounts=rug.get("top_token_accounts") or []
+    if rug.get("reported_total_holders") is None or not top_accounts:
+        missing.append("independent holder count and token-account distribution")
+    if "largest_token_accounts" not in sources and top_accounts:
+        missing.append("finalized Solana RPC corroboration of indexed holder distribution")
+    elif "largest_token_accounts" not in sources:
         missing.append("largest token accounts and token-account concentration")
-    info=(sources.get("gecko_token_info") or {}).get("fields") or {}
-    holders=info.get("holders") or {}
-    if holders.get("count") is None or holders.get("distribution_percentage") is None:
-        missing.append("holder count and holder distribution")
     launchpad=((sources.get("pumpfun_coin") or {}).get("fields") or {}).get("launchpad_details")
     if not isinstance(launchpad,dict) or "completed" not in launchpad:
         missing.append("Pump.fun graduation and migration state")
@@ -193,6 +237,7 @@ print("LISTING_EVIDENCE_SUMMARY="+json.dumps({
  "gecko_pools":REPORT["sources"].get("gecko_pools"),
  "pumpfun_coin":REPORT["sources"].get("pumpfun_coin"),
  "gecko_token_info":REPORT["sources"].get("gecko_token_info"),
+ "rugcheck_report":REPORT["sources"].get("rugcheck_report"),
  "dex_pairs":[{"dex":p.get("dexId"),"pair":p.get("pairAddress"),"liquidity_usd":(p.get("liquidity") or {}).get("usd"),"volume_24h":(p.get("volume") or {}).get("h24"),"price_usd":p.get("priceUsd")} for p in pairs],
  "website":REPORT["sources"].get("signature_page_https"),
  "errors":REPORT["errors"]

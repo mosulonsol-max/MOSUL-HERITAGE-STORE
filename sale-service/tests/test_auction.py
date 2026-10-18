@@ -7,9 +7,10 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from auction import (AuctionConfig, auction_snapshot, create_bid_challenge,
-                     submit_bid, usdc_raw, winning_bid)
-from core import Product, b58encode, connect, create_order
+from auction import (AuctionConfig, auction_snapshot, consume_winner_order_challenge,
+                     create_bid_challenge, create_winner_order_challenge,
+                     payable_winner, submit_bid, usdc_raw, winning_bid)
+from core import Product, b58encode, connect, create_order, renew_pending_order_claim
 
 UTC = dt.timezone.utc
 NOW = dt.datetime(2030, 1, 1, 12, 0, tzinfo=UTC)
@@ -108,6 +109,97 @@ class AuctionTests(unittest.TestCase):
             AuctionConfig("bad", NOW, NOW - dt.timedelta(minutes=1), 1, 1)
         with self.assertRaises(ValueError):
             usdc_raw("0.001")
+
+    def test_winner_order_requires_fresh_wallet_signature_and_single_use(self):
+        winner_key, winner_wallet = self.key()
+        attacker_key, _ = self.key()
+        self.bid(winner_key, winner_wallet, "50")
+        closed = CFG.ends_at + dt.timedelta(seconds=1)
+        winner = winning_bid(self.db, CFG, PRODUCT.id, closed)
+        challenge = create_winner_order_challenge(
+            self.db, CFG, PRODUCT.id, MERCHANT, "winner-order-123", TERMS, closed,
+        )
+        self.assertEqual(challenge["bidder_wallet"], winner_wallet)
+        forged = base64.b64encode(attacker_key.sign(challenge["message"].encode())).decode()
+        with self.assertRaisesRegex(PermissionError, "signature did not verify"):
+            consume_winner_order_challenge(
+                self.db, CFG, challenge["challenge_id"], forged, winner=winner,
+                merchant_wallet=MERCHANT, idempotency_key="winner-order-123",
+                terms_sha256=TERMS, now=closed,
+            )
+        signed = base64.b64encode(winner_key.sign(challenge["message"].encode())).decode()
+        with self.assertRaisesRegex(PermissionError, "does not match"):
+            consume_winner_order_challenge(
+                self.db, CFG, challenge["challenge_id"], signed, winner=winner,
+                merchant_wallet=MERCHANT, idempotency_key="different-order-123",
+                terms_sha256=TERMS, now=closed,
+            )
+        consume_winner_order_challenge(
+            self.db, CFG, challenge["challenge_id"], signed, winner=winner,
+            merchant_wallet=MERCHANT, idempotency_key="winner-order-123",
+            terms_sha256=TERMS, now=closed,
+        )
+        with self.assertRaisesRegex(PermissionError, "already used"):
+            consume_winner_order_challenge(
+                self.db, CFG, challenge["challenge_id"], signed, winner=winner,
+                merchant_wallet=MERCHANT, idempotency_key="winner-order-123",
+                terms_sha256=TERMS, now=closed,
+            )
+
+    def test_expired_winner_order_challenge_is_rejected(self):
+        winner_key, winner_wallet = self.key()
+        self.bid(winner_key, winner_wallet, "50")
+        closed = CFG.ends_at + dt.timedelta(seconds=1)
+        winner = winning_bid(self.db, CFG, PRODUCT.id, closed)
+        challenge = create_winner_order_challenge(
+            self.db, CFG, PRODUCT.id, MERCHANT, "winner-order-123", TERMS, closed,
+        )
+        signed = base64.b64encode(winner_key.sign(challenge["message"].encode())).decode()
+        with self.assertRaisesRegex(PermissionError, "expired"):
+            consume_winner_order_challenge(
+                self.db, CFG, challenge["challenge_id"], signed, winner=winner,
+                merchant_wallet=MERCHANT, idempotency_key="winner-order-123",
+                terms_sha256=TERMS, now=closed + dt.timedelta(minutes=6),
+            )
+
+    def test_winner_can_recover_lost_order_claim_with_new_signature(self):
+        now = dt.datetime.now(UTC).replace(microsecond=0)
+        cfg = AuctionConfig("genesis-recovery", now - dt.timedelta(hours=1),
+                            now + dt.timedelta(seconds=10), usdc_raw("50"), usdc_raw("5"))
+        key, wallet = self.key()
+        bid_challenge = create_bid_challenge(self.db, cfg, wallet, "50", TERMS, now)
+        bid_signature = base64.b64encode(key.sign(bid_challenge["message"].encode())).decode()
+        bid = submit_bid(self.db, cfg, bid_challenge["challenge_id"], bid_signature, now)
+        closed = now + dt.timedelta(seconds=11)
+        order = create_order(
+            self.db, product=PRODUCT, merchant_wallet=MERCHANT,
+            idempotency_key="winner-order-original", buyer_wallet=wallet,
+            accepted_terms_sha256=TERMS, price_usdc="50", auction_bid_id=bid["bid_id"],
+        )
+        self.db.execute("UPDATE auction_bids SET status='selected' WHERE id=?", (bid["bid_id"],))
+        winner, active = payable_winner(self.db, cfg, PRODUCT.id, closed)
+        self.assertEqual(active["id"], order["id"])
+        challenge = create_winner_order_challenge(
+            self.db, cfg, PRODUCT.id, MERCHANT, "winner-order-recovery", TERMS, closed,
+        )
+        signed = base64.b64encode(key.sign(challenge["message"].encode())).decode()
+        consume_winner_order_challenge(
+            self.db, cfg, challenge["challenge_id"], signed, winner=winner,
+            merchant_wallet=MERCHANT, idempotency_key="winner-order-recovery",
+            terms_sha256=TERMS, now=closed,
+        )
+        restored = renew_pending_order_claim(
+            self.db, order_id=active["id"], buyer_wallet=wallet,
+            auction_bid_id=winner["id"], merchant_wallet=MERCHANT, product=PRODUCT,
+        )
+        self.assertEqual(restored["id"], order["id"])
+        self.assertNotEqual(restored["claim_secret"], order["claim_secret"])
+        with self.assertRaises(PermissionError):
+            renew_pending_order_claim(
+                self.db, order_id=active["id"], buyer_wallet=MERCHANT,
+                auction_bid_id=winner["id"], merchant_wallet=MERCHANT,
+                product=PRODUCT,
+            )
 
 
 if __name__ == "__main__":

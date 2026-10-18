@@ -14,10 +14,12 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core import (MainnetRpc, authorize_download, comparable_sales, confirm_order,
-                  connect, create_order, load_product, validate_pubkey,
+                  connect, create_order, load_product, renew_pending_order_claim,
+                  validate_pubkey,
                   verify_seller_terms_signature)
-from auction import (AuctionConfig, auction_snapshot, create_bid_challenge,
-                    init_auction, submit_bid, usdc_raw, usdc_text, winning_bid)
+from auction import (AuctionConfig, auction_snapshot, consume_winner_order_challenge,
+                    create_bid_challenge, create_winner_order_challenge,
+                    init_auction, payable_winner, submit_bid, usdc_raw, usdc_text)
 from readiness import evaluate_readiness
 
 ROOT = Path(__file__).resolve().parent
@@ -209,26 +211,48 @@ class Handler(BaseHTTPRequestHandler):
                 elif self.path == "/bids" and AUCTION:
                     result = submit_bid(db, AUCTION, str(body["challenge_id"]),
                                         str(body["signature_base64"]))
+                elif self.path == "/orders/challenge" and AUCTION:
+                    accepted = str(body["accepted_terms_sha256"])
+                    if not hmac.compare_digest(accepted, PRODUCT.terms_sha256):
+                        raise PermissionError("accept the current auction terms first")
+                    result = create_winner_order_challenge(
+                        db, AUCTION, PRODUCT.id, MERCHANT_WALLET,
+                        str(body["idempotency_key"]), accepted,
+                    )
                 elif self.path == "/orders" and AUCTION:
                     accepted = str(body["accepted_terms_sha256"])
                     if not hmac.compare_digest(accepted, PRODUCT.terms_sha256):
                         raise PermissionError("accept the current auction terms first")
-                    winner = winning_bid(db, AUCTION, PRODUCT.id)
+                    winner, active_order = payable_winner(db, AUCTION, PRODUCT.id)
                     if not winner:
                         raise ValueError("auction ended without a valid bid")
                     buyer_wallet = str(body.get("buyer_wallet", ""))
                     if not hmac.compare_digest(buyer_wallet, winner["bidder_wallet"]):
                         raise PermissionError("only the highest bidder can pay this order")
-                    result = create_order(
-                        db, product=PRODUCT, merchant_wallet=MERCHANT_WALLET,
+                    consume_winner_order_challenge(
+                        db, AUCTION, str(body["challenge_id"]),
+                        str(body["signature_base64"]), winner=winner,
+                        merchant_wallet=MERCHANT_WALLET,
                         idempotency_key=str(body["idempotency_key"]),
-                        buyer_wallet=buyer_wallet, accepted_terms_sha256=accepted,
-                        ttl_minutes=1440, price_usdc=usdc_text(winner["amount_raw"]),
-                        auction_bid_id=winner["id"],
+                        terms_sha256=accepted,
                     )
-                    with db:
-                        db.execute("UPDATE auction_bids SET status='selected' WHERE id=? AND status='valid'",
-                                   (winner["id"],))
+                    if active_order:
+                        result = renew_pending_order_claim(
+                            db, order_id=active_order["id"], buyer_wallet=buyer_wallet,
+                            auction_bid_id=winner["id"], merchant_wallet=MERCHANT_WALLET,
+                            product=PRODUCT,
+                        )
+                    else:
+                        result = create_order(
+                            db, product=PRODUCT, merchant_wallet=MERCHANT_WALLET,
+                            idempotency_key=str(body["idempotency_key"]),
+                            buyer_wallet=buyer_wallet, accepted_terms_sha256=accepted,
+                            ttl_minutes=1440, price_usdc=usdc_text(winner["amount_raw"]),
+                            auction_bid_id=winner["id"],
+                        )
+                        with db:
+                            db.execute("UPDATE auction_bids SET status='selected' WHERE id=? AND status='valid'",
+                                       (winner["id"],))
                 elif self.path == "/orders" and not AUCTION:
                     return self._json(503, {"error": "auction configuration is unavailable"})
                 elif self.path.startswith("/orders/") and self.path.endswith("/confirm"):

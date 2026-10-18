@@ -20,6 +20,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 MAINNET_RPC = "https://api.mainnet-beta.solana.com"
 USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+MEMO_PROGRAM = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
 SIGNATURE_RE = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{64,100}$")
 ORDER_ID_RE = re.compile(r"^[A-Za-z0-9_-]{20,80}$")
 BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
@@ -249,6 +250,30 @@ def create_order(db: sqlite3.Connection, *, product: Product, merchant_wallet: s
     return public_order(row, product) | {"claim_secret": claim_secret}
 
 
+def renew_pending_order_claim(db: sqlite3.Connection, *, order_id: str,
+                              buyer_wallet: str, auction_bid_id: str,
+                              merchant_wallet: str, product: Product) -> dict:
+    """Reissue a lost claim secret after the HTTP layer verifies a fresh winner signature."""
+    row = db.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
+    if (not row or row["status"] != "pending" or row["product_id"] != product.id
+            or row["buyer_wallet"] != buyer_wallet
+            or row["auction_bid_id"] != auction_bid_id
+            or row["merchant_wallet"] != merchant_wallet
+            or row["terms_sha256"] != product.terms_sha256
+            or utc_now() > dt.datetime.fromisoformat(row["expires_at"])):
+        raise PermissionError("pending winner order cannot be recovered")
+    claim_secret = secrets.token_urlsafe(32)
+    with db:
+        updated = db.execute(
+            "UPDATE orders SET claim_secret_hash=? WHERE id=? AND status='pending'",
+            (hashlib.sha256(claim_secret.encode()).hexdigest(), order_id),
+        )
+        if updated.rowcount != 1:
+            raise PermissionError("pending winner order changed")
+    return public_order(db.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone(),
+                        product) | {"claim_secret": claim_secret}
+
+
 def solana_pay_uri(order: sqlite3.Row, product: Product) -> str:
     query = urllib.parse.urlencode({
         "amount": order["price_usd"],
@@ -317,6 +342,23 @@ def _token_amounts(balances: list[dict], mint: str, owner: str) -> dict[int, int
     return result
 
 
+def _has_order_memo(transaction: dict, expected: str) -> bool:
+    """Match the exact on-chain Solana Pay memo, not merely a client URL parameter."""
+    instructions = transaction.get("transaction", {}).get("message", {}).get("instructions", [])
+    for instruction in instructions:
+        if not isinstance(instruction, dict) or instruction.get("programId") != MEMO_PROGRAM:
+            continue
+        if instruction.get("parsed") == expected:
+            return True
+        if isinstance(instruction.get("data"), str):
+            try:
+                if b58decode(instruction["data"]).decode("utf-8") == expected:
+                    return True
+            except (ValueError, UnicodeDecodeError):
+                pass
+    return False
+
+
 def verify_transaction(transaction: dict | None, order: sqlite3.Row) -> None:
     if not transaction or transaction.get("meta", {}).get("err") is not None:
         raise ValueError("transaction is missing or failed")
@@ -324,6 +366,8 @@ def verify_transaction(transaction: dict | None, order: sqlite3.Row) -> None:
         raise ValueError("order has no verified buyer wallet")
     if order["reference_key"] not in _account_keys(transaction):
         raise ValueError("transaction does not contain the unique order reference")
+    if not _has_order_memo(transaction, order["memo"]):
+        raise ValueError("transaction does not contain the exact order memo")
     block_time = transaction.get("blockTime")
     if not isinstance(block_time, int):
         raise ValueError("transaction has no block time")
