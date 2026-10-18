@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
   "product_id": "MOSUL-GENESIS-000001",
-  "terms_version": "2026-10-13-v2",
-  "terms_sha256": "83e02c0b442d25c5217f459979390759d562c0265cc5bbc7b7b7c7af7380fe9c",
+  "terms_version": "2026-10-18-v3",
+  "terms_sha256": "47a6af605ea00177b592bc68624ab7e3b6af93dd78a616d92f840242290d2f12",
   "source_provenance": {
     "catalogue": "Library of Congress",
     "catalog_id": "2019706978",

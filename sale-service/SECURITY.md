@@ -7,7 +7,7 @@
 - Only after the auction closes does the highest valid bidder receive a
   24-hour exact amount payment request. Creating that request requires a fresh,
   single-use Ed25519 signature from the winning wallet over the exact bid,
-  amount, merchant, USDC mint, terms hash and order idempotency key. An expired
+  amount, merchant, configured payment mint and Token-2022 program, terms hash and order idempotency key. An expired
   winner is defaulted and the next highest valid bid can be selected.
 - If the order response is lost, the same winning wallet can sign a new
   challenge to recover the pending order with a rotated claim secret; an
@@ -16,8 +16,8 @@
   No seed phrase or signing key is used by this service.
 - A payment settles only when a finalized Solana Mainnet transaction contains
   the unique order reference and exact on-chain order memo, increases
-  merchant-owned USDC balances by the exact raw amount, and debits the
-  winning bidder's USDC balance within the order validity window.
+  merchant-owned token balances for the configured payment mint and program by the exact raw amount, and debits the
+  winning bidder's balance of the same configured asset within the order validity window.
 - Order IDs, references, payment signatures, and product inventory are unique.
   The one-of-one product cannot be reserved twice or sold twice.
 - Delivery requires a paid order and an HMAC-authenticated token that expires

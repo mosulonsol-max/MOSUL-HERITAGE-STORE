@@ -10,11 +10,11 @@ body{margin:0;background:#f4efe5;color:#17231f;font:16px/1.6 system-ui,sans-seri
 <body><main class="wrap"><section class="panel">
 <p>MOSUL HERITAGE STORE · OWNER ACTION</p>
 <h1>Sign the exact seller terms</h1>
-<p class="notice">This signs a message only. It does not send funds or reveal a private key. Confirm that the connected wallet is the published receiving wallet.</p>
+<p class="notice">Draft terms only. Signing does not send funds or reveal a private key. The wallet you connect will be authorized to receive this product’s MOSUL payment. Confirm that it is the seller-controlled payment wallet.</p>
 <label>Legal seller name (must exactly match deployment)<br><input id="legalName" autocomplete="name" required></label>
 <ul>
 <li>Product: MOSUL-GENESIS-000001</li>
-<li>Terms version: 2026-10-13-v2</li>
+<li>Terms version: 2026-10-18-v3</li>
 <li>Terms SHA-256: <code id="hash"></code></li>
 <li>Wallet: <code id="wallet"></code></li>
 </ul>
@@ -24,16 +24,16 @@ body{margin:0;background:#f4efe5;color:#17231f;font:16px/1.6 system-ui,sans-seri
 <p id="status" role="status">Verifying the terms file…</p><pre id="output"></pre>
 </section></main>
 <script>
-const expectedHash='83e02c0b442d25c5217f459979390759d562c0265cc5bbc7b7b7c7af7380fe9c';
-const receivingWallet='EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu';
+const expectedHash='47a6af605ea00177b592bc68624ab7e3b6af93dd78a616d92f840242290d2f12';
+
 const status=document.getElementById('status'),output=document.getElementById('output'),button=document.getElementById('sign');
 const phantomLink=document.getElementById('openPhantom'),pageUrl=location.origin+location.pathname;
 phantomLink.href='https://phantom.com/ul/browse/'+encodeURIComponent(pageUrl)+'?ref='+encodeURIComponent(location.origin);
 if(!window.solana)phantomLink.classList.remove('hidden');
-document.getElementById('hash').textContent=expectedHash;document.getElementById('wallet').textContent=receivingWallet;
+document.getElementById('hash').textContent=expectedHash;document.getElementById('wallet').textContent='Connect seller-controlled payment wallet before signing';
 function hex(bytes){return[...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('')}
 function b64(bytes){let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s)}
 async function verifyFile(){try{const body=await fetch('docs/SALE-TERMS.md',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Terms file unavailable');return r.arrayBuffer()});const actual=hex(await crypto.subtle.digest('SHA-256',body));if(actual!==expectedHash)throw Error('Terms hash mismatch; do not sign.');button.disabled=false;status.textContent='Verified. Review the terms, then sign.'}catch(e){status.className='error';status.textContent=e.message}}
-button.onclick=async()=>{try{const seller=document.getElementById('legalName').value.trim();if(!seller)throw Error('Enter the legal seller name exactly as it will appear at checkout.');const provider=window.solana;if(!provider||typeof provider.connect!=='function'||typeof provider.signMessage!=='function')throw Error('Open this HTTPS page in a Solana wallet browser that supports message signing.');const connected=await provider.connect();const wallet=connected.publicKey.toString();if(wallet!==receivingWallet)throw Error(`Connected wallet ${wallet} is not the published receiving wallet ${receivingWallet}. Switch the active Phantom account and try again.`);const signedAt=new Date().toISOString();const message=`MOSUL HERITAGE SELLER TERMS ACCEPTANCE\nSeller: ${seller}\nTrade name: MOSUL HERITAGE STORE\nWallet: ${receivingWallet}\nProduct: MOSUL-GENESIS-000001\nTerms version: 2026-10-13-v2\nTerms SHA-256: ${expectedHash}\nSigned at: ${signedAt}\nI approve these exact auction and buyer terms and authorize this wallet to receive the winning payment.`;const result=await provider.signMessage(new TextEncoder().encode(message),'utf8');const signature=b64(result.signature||result);const record={seller,trade_name:'MOSUL HERITAGE STORE',wallet:receivingWallet,product_id:'MOSUL-GENESIS-000001',terms_version:'2026-10-13-v2',terms_sha256:expectedHash,signed_at:signedAt,message,signature_base64:signature};output.textContent=`SELLER_TERMS_SIGNED_AT=${signedAt}\nSELLER_TERMS_SIGNATURE_B64=${signature}\n\nDetached record:\n${JSON.stringify(record,null,2)}`;status.className='';status.textContent='Signature created. Store the two environment values in the deployment; the signature can be independently verified.'}catch(e){status.className='error';status.textContent=e.message}};
+button.onclick=async()=>{try{const seller=document.getElementById('legalName').value.trim();if(!seller)throw Error('Enter the legal seller name exactly as it will appear at checkout.');const provider=window.solana;if(!provider||typeof provider.connect!=='function'||typeof provider.signMessage!=='function')throw Error('Open this HTTPS page in a Solana wallet browser that supports message signing.');const connected=await provider.connect();const wallet=connected.publicKey.toString();document.getElementById('wallet').textContent=wallet;const signedAt=new Date().toISOString();const message=`MOSUL HERITAGE SELLER TERMS ACCEPTANCE\nSeller: ${seller}\nTrade name: MOSUL HERITAGE STORE\nWallet: ${wallet}\nProduct: MOSUL-GENESIS-000001\nTerms version: 2026-10-18-v3\nTerms SHA-256: ${expectedHash}\nSigned at: ${signedAt}\nI approve these exact auction and buyer terms and authorize this wallet to receive the winning MOSUL payment.`;const result=await provider.signMessage(new TextEncoder().encode(message),'utf8');const signature=b64(result.signature||result);const record={seller,trade_name:'MOSUL HERITAGE STORE',wallet,product_id:'MOSUL-GENESIS-000001',terms_version:'2026-10-18-v3',terms_sha256:expectedHash,signed_at:signedAt,message,signature_base64:signature};output.textContent=`SELLER_TERMS_SIGNED_AT=${signedAt}\nSELLER_TERMS_SIGNATURE_B64=${signature}\n\nDetached record:\n${JSON.stringify(record,null,2)}`;status.className='';status.textContent='Signature created. Store the two environment values in the deployment; the signature can be independently verified.'}catch(e){status.className='error';status.textContent=e.message}};
 verifyFile();
 </script></body></html>

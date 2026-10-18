@@ -1,11 +1,13 @@
 # MOSUL-GENESIS-000001 — auction and buyer terms
 
-- **Version:** 2026-10-13-v2
+**DRAFT — not approved or signed. Checkout must remain disabled until the seller reviews and signs this exact version.**
+
+- **Version:** 2026-10-18-v3
 - **Trade name:** MOSUL HERITAGE STORE
 - **Seller jurisdiction:** Republic of Iraq
 - **Legal seller and support:** disclosed on the live lot page from the
   production seller record
-- **Receiving wallet:** `EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu`
+- **Receiving wallet:** to be selected and explicitly authorized by the seller when signing these terms. The project-to-token proof wallet is not a payment authorization.
 
 These terms and the lot page are the entire agreement for this timed online
 auction. The lot page supplies the legal seller, business/service address,
@@ -26,8 +28,8 @@ any seller disclosure is absent, the auction service must remain disabled.
 ## 2. Auction and price
 
 - This is a timed ascending auction with no hidden reserve. The opening bid is
-  **100 USDC** and is also the minimum price at which the lot can sell.
-- Each new bid must be at least **10 USDC** above the current highest bid.
+  **100 USD** and is also the minimum price at which the lot can sell.
+- Each new bid must be at least **10 USD** above the current highest bid.
 - The final price is the highest eligible bid accepted by the server before the
   published closing time. The server timestamp and signed-bid ledger control.
 - A bid is an irrevocable offer for the stated amount during this auction. It
@@ -48,17 +50,14 @@ containing the auction ID, wallet, bid amount, nonce, expiry and SHA-256 of
 these terms. That wallet signature records acceptance of this version and the
 bid; the platform retains the message, signature and UTC time.
 
-The seller separately signs the same terms hash with the published receiving
-wallet. Any change to these terms creates a new hash and requires a new seller
+The seller separately signs the same terms hash with the receiving wallet they choose and connect in the signing flow; the signature authorizes that wallet to receive this product's winning MOSUL payment. Any change to these terms creates a new hash and requires a new seller
 signature. Wallet signatures are cryptographic evidence of wallet control and
 agreement; they are not represented as a government-issued identity or an
 accredited Iraqi authentication certificate.
 
 ## 4. Winner, payment and default
 
-- After close, the highest eligible bidder has 24 hours to pay the exact winning
-  amount in Solana Mainnet USDC to the receiving wallet shown above. There is no
-  buyer's premium. The buyer pays their own network fee and any tax legally due.
+- After close, the highest eligible bidder has 24 hours to pay the exact winning USD value converted to MOSUL using the quoted MOSUL/USD price shown in the payment request, and sent on Solana Mainnet to the seller-authorized receiving wallet. The quote records the DEX Screener pool address, displayed USD price, displayed liquidity and UTC time. It is a reference quote, not a guaranteed executable market price. The MOSUL amount is fixed for that payment request until its 24-hour deadline; if no valid pool quote is available, no payment request is issued. There is no buyer's premium. The buyer pays their own network fee and any tax legally due.
 - Payment must use the unique order reference and memo. Sending another asset,
   another amount or using another network does not satisfy the order.
 - The service recognizes payment only after an exact, successful, finalized

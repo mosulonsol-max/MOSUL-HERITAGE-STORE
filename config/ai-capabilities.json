@@ -7,7 +7,7 @@
     {"name": "capability_audit", "status": "implemented", "notes": "Fail-closed registry and tests."},
     {"name": "draft_copy", "status": "implemented", "notes": "Drafts only; factual claims need sources."},
     {"name": "queue_social_post", "status": "partial", "notes": "Existing X/Telegram queues require channel secrets."},
-    {"name": "enable_checkout", "status": "partial", "notes": "Fail-closed timed ascending USDC auction and winner checkout are implemented and tested; activation awaits signed terms, auction dates/bid settings, verified receiving wallet, private delivery package, deployment, local payment-method review, and independent security review."},
+    {"name": "enable_checkout", "status": "partial", "notes": "Fail-closed timed auction and MOSUL Token-2022 winner checkout candidate are implemented with synthetic tests; activation awaits seller-signed MOSUL terms, auction dates/bid settings, seller-authorized receiving wallet, private delivery package, market/payment end-to-end tests, deployment, local payment-method review, and independent security review."},
     {"name": "settle_auction", "status": "disabled", "notes": "Devnet testing only after manual approval."},
     {"name": "mint_nft", "status": "disabled", "notes": "No mainnet minting; provenance gates incomplete."}
   ]

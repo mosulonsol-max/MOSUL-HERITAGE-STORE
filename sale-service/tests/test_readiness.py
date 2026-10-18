@@ -19,7 +19,7 @@ class ReadinessTests(unittest.TestCase):
         self.product.write_text(json.dumps({
             "id": "LOT-1", "edition": "1/1", "sale_type": "timed_ascending_auction",
             "reserve_policy": "no_hidden_reserve_opening_bid_is_minimum_sale_price",
-            "auction_opening_bid_usdc": "100.00", "auction_increment_usdc": "10.00",
+            "auction_opening_bid_usd": "100.00", "auction_increment_usd": "10.00",
             "terms_version": "v1", "terms_sha256": terms_hash,
         }))
         self.valid_assets = {

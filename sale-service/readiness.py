@@ -62,8 +62,8 @@ def evaluate_readiness(*, product_path: str | Path, asset_manifest_path: str | P
         and product.get("edition") == "1/1"
         and product.get("sale_type") == "timed_ascending_auction"
         and product.get("reserve_policy") == "no_hidden_reserve_opening_bid_is_minimum_sale_price"
-        and bool(product.get("auction_opening_bid_usdc"))
-        and bool(product.get("auction_increment_usdc"))
+        and bool(product.get("auction_opening_bid_usd"))
+        and bool(product.get("auction_increment_usd"))
     )
     source_gate = (
         _https(source.get("page_url"))
