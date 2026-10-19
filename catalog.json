@@ -1,6 +1,39 @@
 {
   "items": [
     {
+      "id": "MH-20261019T145133Z-a6cb66db",
+      "title": "Brick and Shadow Study — 2026-10-19 14:00 UTC",
+      "prompt": "Create one original, high-quality digital artwork for a cultural collectibles preview. A sculptural arrangement of sunlit brick arches and long shadows, inspired by northern Iraqi craft, modern museum-quality art. The scene is interpretive contemporary art, not a documentary photograph, verified reconstruction, or claim about an exact historical site. No words, letters, logos, watermarks, signatures, or invented historical details. Square image, refined color and texture. Variation key 2026-10-19T14 UTC; create a distinct composition.",
+      "model": "segmind/small-sd",
+      "model_revision": "728f8b598d7d305bd30c20cbdfbaa6ffa7eec9cc",
+      "model_license": "CreativeML Open RAIL-M",
+      "generation_compute": "github-hosted-cpu",
+      "generation_seed": 1613060736,
+      "automated_quality_gate": {
+        "status": "passed",
+        "contrast": 67.6,
+        "sampled_colors": 8911
+      },
+      "category": "digital-art-one-of-one",
+      "created_at": "2026-10-19T14:51:33Z",
+      "image": "generated/MH-20261019T145133Z-a6cb66db.png",
+      "sha256": "fc23d0f070b56321f68a7b3baac60ab1da820311f2d61c7b260a260f5376a9d6",
+      "classification": "AI-generated, heritage-inspired contemporary artwork; not historical evidence.",
+      "status": "PUBLIC PREVIEW — NOT FOR SALE",
+      "price_benchmark": {
+        "status": "unavailable",
+        "reason": "Comparable-sales source is not configured."
+      },
+      "watermark_status": "Watermarked public preview with a signed provenance record.",
+      "mint_status": "Not minted",
+      "provenance_signature": {
+        "algorithm": "Ed25519",
+        "public_key_b64": "HJvRYpI9wDUVqqPSTpoPx8WvdYq30Ceye2IFNyjfCTU=",
+        "signature_b64": "yZLGzSDAtwX2q5YT7ZV4o/ueO5MP/BMAoYxwj4zm05ljh0yMNqfmxzMWOxyEg13cIsBwR6C3eJa8F0ScWGTWBA==",
+        "scope": "Canonical JSON record excluding provenance_signature"
+      }
+    },
+    {
       "id": "MH-20261019T135850Z-005c48fe",
       "title": "River Memory Study — 2026-10-19 13:00 UTC",
       "prompt": "Create one original, high-quality digital artwork for a cultural collectibles preview. An abstract view of the Tigris as a ribbon of blue and gold through layered Mosul-inspired forms, contemporary fine-art print. The scene is interpretive contemporary art, not a documentary photograph, verified reconstruction, or claim about an exact historical site. No words, letters, logos, watermarks, signatures, or invented historical details. Square image, refined color and texture. Variation key 2026-10-19T13 UTC; create a distinct composition.",
