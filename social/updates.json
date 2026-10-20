@@ -124,6 +124,11 @@
       "id": "daily-2026-10-19-evening",
       "status": "approved",
       "text": "MOSUL HERITAGE artwork previews now include a unique ID, SHA-256 digest, watermark, source notes, and optional Ed25519 signature for verifiable provenance. https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/ #MOSUL #Provenance"
+    },
+    {
+      "id": "daily-2026-10-20-morning",
+      "status": "approved",
+      "text": "MOSUL HERITAGE now has a tested governance engine, deterministic policy gates, and support for optional Ed25519 provenance. Automated tests cover generation, publishing, and Devnet payment flows. https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/ #MOSUL #BuildInPublic"
     }
   ]
 }
