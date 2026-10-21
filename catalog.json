@@ -1,6 +1,39 @@
 {
   "items": [
     {
+      "id": "MH-20261021T075512Z-1645b083",
+      "title": "Garden After Rain — 2026-10-21 07:00 UTC",
+      "prompt": "Create one original, high-quality digital artwork for a cultural collectibles preview. A peaceful garden courtyard after rain, stone, water reflections and native greenery, Mosul-inspired contemporary art. The scene is interpretive contemporary art, not a documentary photograph, verified reconstruction, or claim about an exact historical site. No words, letters, logos, watermarks, signatures, or invented historical details. Square image, refined color and texture. Variation key 2026-10-21T07 UTC; create a distinct composition.",
+      "model": "segmind/small-sd",
+      "model_revision": "728f8b598d7d305bd30c20cbdfbaa6ffa7eec9cc",
+      "model_license": "CreativeML Open RAIL-M",
+      "generation_compute": "github-hosted-cpu",
+      "generation_seed": 1700092163,
+      "automated_quality_gate": {
+        "status": "passed",
+        "contrast": 53.56,
+        "sampled_colors": 13466
+      },
+      "category": "digital-art-one-of-one",
+      "created_at": "2026-10-21T07:55:12Z",
+      "image": "generated/MH-20261021T075512Z-1645b083.png",
+      "sha256": "7e480f8ccd5a4b9f26142153831bc34b2e9ffa6b67a77e2cd56af944d04004ad",
+      "classification": "AI-generated, heritage-inspired contemporary artwork; not historical evidence.",
+      "status": "PUBLIC PREVIEW — NOT FOR SALE",
+      "price_benchmark": {
+        "status": "unavailable",
+        "reason": "Comparable-sales source is not configured."
+      },
+      "watermark_status": "Watermarked public preview with a signed provenance record.",
+      "mint_status": "Not minted",
+      "provenance_signature": {
+        "algorithm": "Ed25519",
+        "public_key_b64": "HJvRYpI9wDUVqqPSTpoPx8WvdYq30Ceye2IFNyjfCTU=",
+        "signature_b64": "LZwC4A7scWcLb3o+Pi1FMDLnp34gNJHq5CSvoAC0Kh5XuYyj5HTkywZU6XpGa3Lv9lcVmqPb7eHvRywlbaKNCw==",
+        "scope": "Canonical JSON record excluding provenance_signature"
+      }
+    },
+    {
       "id": "MH-20261021T065842Z-246f89e2",
       "title": "Brick and Shadow Study — 2026-10-21 06:00 UTC",
       "prompt": "Create one original, high-quality digital artwork for a cultural collectibles preview. A sculptural arrangement of sunlit brick arches and long shadows, inspired by northern Iraqi craft, modern museum-quality art. The scene is interpretive contemporary art, not a documentary photograph, verified reconstruction, or claim about an exact historical site. No words, letters, logos, watermarks, signatures, or invented historical details. Square image, refined color and texture. Variation key 2026-10-21T06 UTC; create a distinct composition.",
