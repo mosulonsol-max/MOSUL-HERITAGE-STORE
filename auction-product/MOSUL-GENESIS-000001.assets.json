@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
   "product_id": "MOSUL-GENESIS-000001",
-  "terms_version": "2026-10-13-v2",
-  "terms_sha256": "83e02c0b442d25c5217f459979390759d562c0265cc5bbc7b7b7c7af7380fe9c",
+  "terms_version": "2026-10-18-v3",
+  "terms_sha256": "47a6af605ea00177b592bc68624ab7e3b6af93dd78a616d92f840242290d2f12",
   "source_provenance": {
     "catalogue": "Library of Congress",
     "catalog_id": "2019706978",
@@ -16,24 +16,24 @@
   },
   "public_preview": {
     "url": "https://mosulonsol-max.github.io/MOSUL-HERITAGE-STORE/auction-product/MOSUL-GENESIS-000001-preview.png",
-    "sha256": "62aeeb16eabafc4e999a418d1132dc138ffcedb20b8316bf70377a1269f075ce",
+    "sha256": "e2273be1a6bf519c3b32234391d84f897f9b5ec2d4dd4e4224532d0b3284283d",
     "watermarked": true
   },
   "collector_master": {
-    "sha256": "d85feaa0c09530dc6f6b98830d237f8546594396482c241d461562f756a823ad",
+    "sha256": "c346778ca4da685b50a624355cc70c56eb483d158609dbb596bb1a48c3491903",
     "width": 512,
     "height": 512,
     "publicly_accessible": false
   },
   "delivery_package": {
-    "sha256": "9f801baa5856284739c346395a6abff8ba3cf725f4968d9edc3893a31db6b658",
+    "sha256": "aa60a649a72a9c2ba13130a8ae2c72bec1e036f960453c1a133f25a66ba86661",
     "contents": [
       "Collector Master",
       "certificate.json",
       "SHA256SUMS",
       "LICENSE.txt"
     ],
-    "encrypted_artifact_sha256": "4738f60b287410ee29a3866e9e6d2e4c222528f7edadf86bf71177cebd1a7249",
+    "encrypted_artifact_sha256": "d52c074b231becce9aade6eb7f5ffa4a5c0faf0df245269dd1c5616de827965d",
     "encryption": "AES-256-GCM; key derived with HKDF-SHA256 from the artwork signing seed"
   }
 }

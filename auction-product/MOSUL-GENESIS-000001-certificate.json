@@ -4,8 +4,8 @@
   "title": "Mosul 1932 — Al-Hadba Over the Old City",
   "edition": "1/1",
   "classification": "AI-generated interpretive artwork informed by the cited archival record; not a historical photograph.",
-  "collector_master_sha256": "d85feaa0c09530dc6f6b98830d237f8546594396482c241d461562f756a823ad",
-  "public_preview_sha256": "62aeeb16eabafc4e999a418d1132dc138ffcedb20b8316bf70377a1269f075ce",
+  "collector_master_sha256": "c346778ca4da685b50a624355cc70c56eb483d158609dbb596bb1a48c3491903",
+  "public_preview_sha256": "e2273be1a6bf519c3b32234391d84f897f9b5ec2d4dd4e4224532d0b3284283d",
   "source_provenance": {
     "catalogue": "Library of Congress",
     "catalog_id": "2019706978",
@@ -28,12 +28,12 @@
     "reference_url": "https://tile.loc.gov/storage-services/service/pnp/matpc/16200/16200v.jpg",
     "seed": 1932000001
   },
-  "terms_version": "2026-10-13-v2",
-  "terms_sha256": "83e02c0b442d25c5217f459979390759d562c0265cc5bbc7b7b7c7af7380fe9c",
+  "terms_version": "2026-10-18-v3",
+  "terms_sha256": "47a6af605ea00177b592bc68624ab7e3b6af93dd78a616d92f840242290d2f12",
   "provenance_signature": {
     "algorithm": "Ed25519",
     "public_key_b64": "HJvRYpI9wDUVqqPSTpoPx8WvdYq30Ceye2IFNyjfCTU=",
-    "signature_b64": "foBi2wNMtECej/cqRSdI/O0xyAQIUbM/0hx5q3wQ/DuZosAUDugnGFfZS1kRwz0nJ7Kyz7E7UBKQgrTvPXxMBQ==",
+    "signature_b64": "kF5SrJ3/jL+faLLYDYSHIa2XOpR7+9IQEzBlIi9kIiQp9HYP7yheE4vPm1Dj2I6hjBXQccR6on7SZXnMolJWBw==",
     "scope": "Canonical JSON record excluding provenance_signature"
   }
 }
