@@ -7,6 +7,7 @@ terms revision as a saleable product.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import re
 import argparse
@@ -37,10 +38,11 @@ def _gate(name: str, passed: bool, detail: str) -> dict:
     return {"name": name, "passed": bool(passed), "detail": detail}
 
 
-def _delivery_matches_product(path: Path, product: dict, assets: dict) -> bool:
+def _delivery_matches_product(package: Path | bytes, product: dict, assets: dict) -> bool:
     """Check that the pinned ZIP actually contains this terms revision and master."""
     try:
-        with zipfile.ZipFile(path) as archive:
+        source = io.BytesIO(package) if isinstance(package, bytes) else package
+        with zipfile.ZipFile(source) as archive:
             names = set(archive.namelist())
             master_name = "MOSUL-GENESIS-000001-Collector-Master.png"
             required = {master_name, "certificate.json", "SHA256SUMS", "LICENSE.txt"}
@@ -75,6 +77,7 @@ def _delivery_matches_product(path: Path, product: dict, assets: dict) -> bool:
 
 def evaluate_readiness(*, product_path: str | Path, asset_manifest_path: str | Path,
                        delivery_package_path: str | Path | None = None,
+                       delivery_package_bytes: bytes | None = None,
                        seller_signature_valid: bool = False,
                        auction_configured: bool = False,
                        seller_disclosure_complete: bool = False) -> dict:
@@ -123,11 +126,19 @@ def evaluate_readiness(*, product_path: str | Path, asset_manifest_path: str | P
 
     delivery = Path(delivery_package_path) if delivery_package_path else None
     expected_package_hash = str(package.get("sha256", ""))
+    if delivery_package_bytes is not None:
+        actual_package_hash = hashlib.sha256(delivery_package_bytes).hexdigest()
+        package_source: Path | bytes = delivery_package_bytes
+        package_present = True
+    else:
+        actual_package_hash = sha256_file(delivery) if delivery and delivery.is_file() else ""
+        package_source = delivery if delivery else b""
+        package_present = bool(delivery and delivery.is_file())
     package_gate = bool(
-        delivery and delivery.is_file()
+        package_present
         and SHA256_RE.fullmatch(expected_package_hash)
-        and sha256_file(delivery) == expected_package_hash
-        and _delivery_matches_product(delivery, product, assets)
+        and actual_package_hash == expected_package_hash
+        and _delivery_matches_product(package_source, product, assets)
     )
     terms_gate = (
         assets.get("terms_version") == product.get("terms_version")
