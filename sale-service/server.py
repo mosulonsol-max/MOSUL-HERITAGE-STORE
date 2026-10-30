@@ -22,6 +22,7 @@ from auction import (AuctionConfig, auction_snapshot, consume_winner_order_chall
                     init_auction, payable_winner, submit_bid, usd_raw, usd_text)
 from readiness import evaluate_readiness
 from pricing import mosul_usd_quote
+from delivery import load_private_package
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("SALE_DB", "data/sales.sqlite3"))
@@ -31,7 +32,9 @@ ASSET_MANIFEST_PATH = Path(os.environ.get(
     "SALE_ASSET_MANIFEST",
     str(ROOT / "products" / "MOSUL-GENESIS-000001.assets.json")))
 DELIVERY_SECRET = os.environ.get("DELIVERY_TOKEN_SECRET", "")
-DELIVERY_PACKAGE = Path(os.environ.get("DELIVERY_PACKAGE_PATH", ""))
+DELIVERY_ENCRYPTED_PACKAGE = Path(os.environ.get("DELIVERY_ENCRYPTED_PACKAGE_PATH", ""))
+ARTWORK_SIGNING_KEY_B64 = os.environ.get("ARTWORK_SIGNING_KEY_B64", "")
+DELIVERY_PACKAGE_BYTES = b""
 RPC_URL = os.environ.get("SOLANA_MAINNET_RPC", "https://api.mainnet-beta.solana.com")
 ALLOWED_ORIGIN = os.environ.get("SALE_ALLOWED_ORIGIN", "")
 ADMIN_TOKEN = os.environ.get("SALE_ADMIN_TOKEN", "")
@@ -86,7 +89,7 @@ def readiness_snapshot() -> dict:
     return evaluate_readiness(
         product_path=PRODUCT_PATH,
         asset_manifest_path=ASSET_MANIFEST_PATH,
-        delivery_package_path=DELIVERY_PACKAGE,
+        delivery_package_bytes=DELIVERY_PACKAGE_BYTES or None,
         seller_signature_valid=seller_signature_valid(),
         auction_configured=AUCTION is not None,
         seller_disclosure_complete=all((
@@ -174,7 +177,8 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 with connect(DB_PATH) as db:
                     authorize_download(db, parts[1], token, DELIVERY_SECRET)
-                size = DELIVERY_PACKAGE.stat().st_size
+                package_bytes = DELIVERY_PACKAGE_BYTES
+                size = len(package_bytes)
                 self.send_response(200)
                 self.send_header("Content-Type", mimetypes.guess_type(DELIVERY_PACKAGE.name)[0]
                                  or "application/octet-stream")
@@ -182,9 +186,8 @@ class Handler(BaseHTTPRequestHandler):
                                  'attachment; filename="MOSUL-GENESIS-000001.zip"')
                 self.send_header("Content-Length", str(size))
                 self.end_headers()
-                with DELIVERY_PACKAGE.open("rb") as handle:
-                    while chunk := handle.read(1024 * 1024):
-                        self.wfile.write(chunk)
+                for offset in range(0, size, 1024 * 1024):
+                    self.wfile.write(package_bytes[offset:offset + 1024 * 1024])
                 return
             except (PermissionError, OSError):
                 return self._json(403, {"error": "download unavailable"})
@@ -299,8 +302,11 @@ def validate_startup() -> None:
         validate_pubkey(MERCHANT_WALLET)
     except ValueError:
         raise SystemExit("SALES_MERCHANT_WALLET must be a valid Solana public key") from None
-    if not DELIVERY_PACKAGE.is_file():
-        raise SystemExit("DELIVERY_PACKAGE_PATH must point to the private product ZIP")
+    global DELIVERY_PACKAGE_BYTES
+    if not DELIVERY_ENCRYPTED_PACKAGE.is_file():
+        raise SystemExit("DELIVERY_ENCRYPTED_PACKAGE_PATH must point to the private encrypted product artifact")
+    if not ARTWORK_SIGNING_KEY_B64:
+        raise SystemExit("ARTWORK_SIGNING_KEY_B64 is required to decrypt the private delivery artifact")
     if PRODUCT.terms_sha256 == "0" * 64 or PRODUCT.terms_version == "owner-signature-required":
         raise SystemExit("replace the draft buyer terms with the signed version and its SHA-256")
     try:
@@ -312,6 +318,18 @@ def validate_startup() -> None:
         )
     except (ValueError, PermissionError) as exc:
         raise SystemExit(f"valid seller wallet signature over the exact terms is required: {exc}") from None
+    assets = json.loads(ASSET_MANIFEST_PATH.read_text(encoding="utf-8"))
+    package_manifest = assets.get("delivery_package", {})
+    try:
+        DELIVERY_PACKAGE_BYTES = load_private_package(
+            DELIVERY_ENCRYPTED_PACKAGE,
+            signing_seed_b64=ARTWORK_SIGNING_KEY_B64,
+            expected_encrypted_sha256=package_manifest.get("encrypted_artifact_sha256", ""),
+            expected_package_sha256=package_manifest.get("sha256", ""),
+            product_id=PRODUCT.id,
+        )
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"private delivery artifact verification failed: {exc}") from None
     readiness = readiness_snapshot()
     if not readiness["auction_ready"]:
         raise SystemExit("auction readiness gates failed: " + ", ".join(readiness["blockers"]))
