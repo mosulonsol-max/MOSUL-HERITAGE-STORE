@@ -7,7 +7,6 @@ services:
     dockerfilePath: ./sale-service/Dockerfile
     dockerContext: ./sale-service
     initialDeployCommand: python install_delivery_artifact.py
-    dockerContext: ./sale-service
     healthCheckPath: /health
     autoDeployTrigger: commit
     disk:
