@@ -158,8 +158,7 @@ class Handler(BaseHTTPRequestHandler):
                                     "seller": ({"trade_name": SELLER_TRADE_NAME,
                                                "name": SELLER_LEGAL_NAME,
                                                "country": SELLER_COUNTRY,
-                                               "address": SELLER_ADDRESS,
-                                               "support_email": SELLER_SUPPORT_EMAIL}
+                                                                                              "support_email": SELLER_SUPPORT_EMAIL}
                                                if SALES_ENABLED else None)})
         if parsed.path == "/readiness":
             return self._json(200, readiness_snapshot())
