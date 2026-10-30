@@ -6,6 +6,7 @@ services:
     plan: starter
     dockerfilePath: ./sale-service/Dockerfile
     dockerContext: ./sale-service
+    dockerContext: ./sale-service
     healthCheckPath: /health
     autoDeployTrigger: commit
     disk:
