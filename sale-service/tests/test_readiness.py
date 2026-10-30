@@ -89,6 +89,27 @@ class ReadinessTests(unittest.TestCase):
         self.assertIn("collector_master", result["blockers"])
         self.assertIn("delivery_package", result["blockers"])
 
+    def test_verified_package_can_be_checked_from_memory(self):
+        self.assets.write_text(json.dumps(self.valid_assets))
+        result = evaluate_readiness(
+            product_path=self.product, asset_manifest_path=self.assets,
+            delivery_package_bytes=self.package.read_bytes(),
+            seller_signature_valid=True, auction_configured=True,
+            seller_disclosure_complete=True,
+        )
+        self.assertTrue(result["asset_ready"])
+        self.assertTrue(result["auction_ready"])
+
+    def test_in_memory_package_digest_mismatch_fails_closed(self):
+        self.assets.write_text(json.dumps(self.valid_assets))
+        result = evaluate_readiness(
+            product_path=self.product, asset_manifest_path=self.assets,
+            delivery_package_bytes=b"tampered",
+            seller_signature_valid=True, auction_configured=True,
+            seller_disclosure_complete=True,
+        )
+        self.assertIn("delivery_package", result["blockers"])
+
     def test_terms_mismatch_fails_closed(self):
         broken = dict(self.valid_assets)
         broken["terms_sha256"] = "d" * 64
