@@ -3,9 +3,10 @@ services:
     name: mosul-heritage-sale-api
     runtime: docker
     region: frankfurt
-    plan: starter
+    plan: 0.5c-512mb
     dockerfilePath: ./sale-service/Dockerfile
     dockerContext: ./sale-service
+    initialDeployCommand: python install_delivery_artifact.py
     dockerContext: ./sale-service
     healthCheckPath: /health
     autoDeployTrigger: commit
