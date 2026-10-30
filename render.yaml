@@ -23,8 +23,12 @@ services:
         value: "0"
       - key: SALE_DB
         value: /app/data/sales.sqlite3
-      - key: DELIVERY_PACKAGE_PATH
-        value: /app/data/private/MOSUL-GENESIS-000001.zip
+      - key: DELIVERY_ENCRYPTED_PACKAGE_PATH
+        value: /app/data/private/MOSUL-GENESIS-000001-package.zip.aes
+      # Set the same protected 32-byte artwork signing seed used for the
+      # encrypted artifact. It is held only as a private deployment secret.
+      - key: ARTWORK_SIGNING_KEY_B64
+        sync: false
       - key: SALE_ASSET_MANIFEST
         value: /app/products/MOSUL-GENESIS-000001.assets.json
       - key: DELIVERY_TOKEN_SECRET
