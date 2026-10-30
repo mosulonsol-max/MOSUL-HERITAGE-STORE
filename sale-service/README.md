@@ -76,9 +76,10 @@ The tests use synthetic transaction objects and transfer no value.
 
 The delivery service accepts the encrypted artifact produced by
 `scripts/package_auction_product.py`; it does not require or store a plaintext
-ZIP on the persistent disk. Place the matching
-`MOSUL-GENESIS-000001-package.zip.aes` in the private path configured by
-`DELIVERY_ENCRYPTED_PACKAGE_PATH` and configure
+ZIP on the persistent disk. On the first deploy, Render downloads the matching encrypted artifact from
+its protected artifact branch into the persistent disk and checks its SHA-256
+against the main-branch asset manifest. The artifact must remain only in that
+private path. Configure
 `ARTWORK_SIGNING_KEY_B64` as a private deployment secret using the same
 32-byte seed that created that artifact. Never put the seed or a decrypted
 Collector Master in GitHub, a public URL, or the container image.
