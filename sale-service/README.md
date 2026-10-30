@@ -70,3 +70,24 @@ The product terms are a draft and must be reviewed and signed by the seller befo
     PYTHONPATH=sale-service python -m unittest discover -s sale-service/tests -v
 
 The tests use synthetic transaction objects and transfer no value.
+
+
+## Encrypted delivery artifact
+
+The delivery service accepts the encrypted artifact produced by
+`scripts/package_auction_product.py`; it does not require or store a plaintext
+ZIP on the persistent disk. Place the matching
+`MOSUL-GENESIS-000001-package.zip.aes` in the private path configured by
+`DELIVERY_ENCRYPTED_PACKAGE_PATH` and configure
+`ARTWORK_SIGNING_KEY_B64` as a private deployment secret using the same
+32-byte seed that created that artifact. Never put the seed or a decrypted
+Collector Master in GitHub, a public URL, or the container image.
+
+At startup, the service checks the ciphertext digest, authenticates AES-GCM
+with the product ID as associated data, checks the decrypted ZIP digest, and
+runs the readiness checks against the ZIP contents and signed certificate.
+The verified ZIP stays in process memory. Download bytes are sent only after a
+paid order passes the short-lived HMAC token and download-count checks. A bad,
+missing, stale, or mismatched artifact prevents the service from starting in
+sales-enabled mode. Replacing an artifact requires updating its manifest and
+restarting the service.
