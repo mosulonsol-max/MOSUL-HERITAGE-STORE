@@ -6,7 +6,7 @@ services:
     plan: 0.5c-512mb
     dockerfilePath: ./sale-service/Dockerfile
     dockerContext: ./sale-service
-    initialDeployCommand: python install_delivery_artifact.py
+    initialDeployHook: python install_delivery_artifact.py
     healthCheckPath: /health
     autoDeployTrigger: commit
     disk:
