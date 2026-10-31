@@ -1,12 +1,12 @@
 {
-  "timestamp_utc": "2026-10-31T01:30:38.495777+00:00",
+  "timestamp_utc": "2026-10-31T07:27:48.159259+00:00",
   "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
   "creator_wallet": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
   "sources": {
     "token_supply": {
       "context": {
         "apiVersion": "4.3.2",
-        "slot": 463504277
+        "slot": 463604224
       },
       "value": {
         "amount": "1000000000000000",
@@ -58,7 +58,7 @@
     },
     "creator_wallet_token_accounts": {
       "context": {
-        "slot": 463504309,
+        "slot": 463604255,
         "apiVersion": "4.3.0-beta.2"
       },
       "value": [
