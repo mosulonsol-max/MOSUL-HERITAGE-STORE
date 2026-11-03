@@ -1,6 +1,39 @@
 {
   "items": [
     {
+      "id": "MH-20261103T100506Z-5ea6d7c5",
+      "title": "Brick and Shadow Study — 2026-11-03 10:00 UTC",
+      "prompt": "Create one original, high-quality digital artwork for a cultural collectibles preview. A sculptural arrangement of sunlit brick arches and long shadows, inspired by northern Iraqi craft, modern museum-quality art. The scene is interpretive contemporary art, not a documentary photograph, verified reconstruction, or claim about an exact historical site. No words, letters, logos, watermarks, signatures, or invented historical details. Square image, refined color and texture. Variation key 2026-11-03T10 UTC; create a distinct composition.",
+      "model": "segmind/small-sd",
+      "model_revision": "728f8b598d7d305bd30c20cbdfbaa6ffa7eec9cc",
+      "model_license": "CreativeML Open RAIL-M",
+      "generation_compute": "github-hosted-cpu",
+      "generation_seed": 3284705941,
+      "automated_quality_gate": {
+        "status": "passed",
+        "contrast": 66.45,
+        "sampled_colors": 10449
+      },
+      "category": "digital-art-one-of-one",
+      "created_at": "2026-11-03T10:05:06Z",
+      "image": "generated/MH-20261103T100506Z-5ea6d7c5.png",
+      "sha256": "d411014cf83ffdbbb712aaf75886b4cc49bb32cf05914130befd5c14e32f1146",
+      "classification": "AI-generated, heritage-inspired contemporary artwork; not historical evidence.",
+      "status": "PUBLIC PREVIEW — NOT FOR SALE",
+      "price_benchmark": {
+        "status": "unavailable",
+        "reason": "Comparable-sales source is not configured."
+      },
+      "watermark_status": "Watermarked public preview with a signed provenance record.",
+      "mint_status": "Not minted",
+      "provenance_signature": {
+        "algorithm": "Ed25519",
+        "public_key_b64": "HJvRYpI9wDUVqqPSTpoPx8WvdYq30Ceye2IFNyjfCTU=",
+        "signature_b64": "szDxwhvqEamO18zLlEwuqnCwG7sLRgatCT+ANfOc87Io6hJsbao/O9KiHFVFvCdVWCUoWHlJtG9u0KQVoHkPCQ==",
+        "scope": "Canonical JSON record excluding provenance_signature"
+      }
+    },
+    {
       "id": "MH-20261103T090320Z-5ed07171",
       "title": "River Memory Study — 2026-11-03 09:00 UTC",
       "prompt": "Create one original, high-quality digital artwork for a cultural collectibles preview. An abstract view of the Tigris as a ribbon of blue and gold through layered Mosul-inspired forms, contemporary fine-art print. The scene is interpretive contemporary art, not a documentary photograph, verified reconstruction, or claim about an exact historical site. No words, letters, logos, watermarks, signatures, or invented historical details. Square image, refined color and texture. Variation key 2026-11-03T09 UTC; create a distinct composition.",
@@ -3924,39 +3957,6 @@
         "algorithm": "Ed25519",
         "public_key_b64": "HJvRYpI9wDUVqqPSTpoPx8WvdYq30Ceye2IFNyjfCTU=",
         "signature_b64": "lNyK0U8XBu5tF9lFjpoVtnRbFiUCqNUn6yarqVhR5k+6uI9ix9OjZrVxynQ62tPi0jAnPygcKQWCku1lawomDw==",
-        "scope": "Canonical JSON record excluding provenance_signature"
-      }
-    },
-    {
-      "id": "MH-20261029T055549Z-cca21685",
-      "title": "River Memory Study — 2026-10-29 05:00 UTC",
-      "prompt": "Create one original, high-quality digital artwork for a cultural collectibles preview. An abstract view of the Tigris as a ribbon of blue and gold through layered Mosul-inspired forms, contemporary fine-art print. The scene is interpretive contemporary art, not a documentary photograph, verified reconstruction, or claim about an exact historical site. No words, letters, logos, watermarks, signatures, or invented historical details. Square image, refined color and texture. Variation key 2026-10-29T05 UTC; create a distinct composition.",
-      "model": "segmind/small-sd",
-      "model_revision": "728f8b598d7d305bd30c20cbdfbaa6ffa7eec9cc",
-      "model_license": "CreativeML Open RAIL-M",
-      "generation_compute": "github-hosted-cpu",
-      "generation_seed": 651157715,
-      "automated_quality_gate": {
-        "status": "passed",
-        "contrast": 69.35,
-        "sampled_colors": 15722
-      },
-      "category": "digital-art-one-of-one",
-      "created_at": "2026-10-29T05:55:49Z",
-      "image": "generated/MH-20261029T055549Z-cca21685.png",
-      "sha256": "43d5d2039a9ec4f77ce38440a5f62057c772a71119972e9124398c2993c701c8",
-      "classification": "AI-generated, heritage-inspired contemporary artwork; not historical evidence.",
-      "status": "PUBLIC PREVIEW — NOT FOR SALE",
-      "price_benchmark": {
-        "status": "unavailable",
-        "reason": "Comparable-sales source is not configured."
-      },
-      "watermark_status": "Watermarked public preview with a signed provenance record.",
-      "mint_status": "Not minted",
-      "provenance_signature": {
-        "algorithm": "Ed25519",
-        "public_key_b64": "HJvRYpI9wDUVqqPSTpoPx8WvdYq30Ceye2IFNyjfCTU=",
-        "signature_b64": "No8Gzs8CazHjoowkrChgT+jPp7XcAkKB1udc7Vs77HroaA/czlJjuX7RgvW0Tb2Pop4WK0ohy/mJPYIQ77VhDA==",
         "scope": "Canonical JSON record excluding provenance_signature"
       }
     }
