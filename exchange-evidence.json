@@ -1,12 +1,12 @@
 {
-  "timestamp_utc": "2026-11-17T08:20:09.602496+00:00",
+  "timestamp_utc": "2026-11-17T21:14:24.001108+00:00",
   "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
   "creator_wallet": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
   "sources": {
     "token_supply": {
       "context": {
         "apiVersion": "4.4.0",
-        "slot": 470464449
+        "slot": 470680410
       },
       "value": {
         "amount": "1000000000000000",
@@ -58,7 +58,7 @@
     },
     "creator_wallet_token_accounts": {
       "context": {
-        "slot": 470464482,
+        "slot": 470680439,
         "apiVersion": "4.3.0-beta.2"
       },
       "value": [
@@ -205,7 +205,7 @@
       "provider": "RugCheck public report API (third-party indexer)",
       "source_url": "https://api.rugcheck.xyz/v1/tokens/6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump/report",
       "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
-      "reported_total_holders": 2,
+      "reported_total_holders": 3,
       "top_token_accounts": [
         {
           "address": "9xLMXiS5WPR12CGsp9VvVwKBcfsL7ssAgRcrUCmK2zHy",
@@ -226,6 +226,16 @@
           "uiAmountString": "7892140.40988",
           "owner": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
           "insider": false
+        },
+        {
+          "address": "6jyEtoYuvFUYB2B2vpoMS2XbLFFsDetxpJRNo49PJFzS",
+          "amount": 0,
+          "decimals": 6,
+          "pct": 0,
+          "uiAmount": 0,
+          "uiAmountString": "0",
+          "owner": "8psNvWTrdNTiVRNzAgsou9kETXNJm2SXZyaKuJraVRtf",
+          "insider": false
         }
       ],
       "markets": [
@@ -239,13 +249,13 @@
           "token_reserve_raw": 785207859590120,
           "quote_reserve_raw": 222291323,
           "quote_reserve_mint": "So11111111111111111111111111111111111111112",
-          "quote_reserve_usd": 16.13765090333817,
+          "quote_reserve_usd": 16.249382597002867,
           "reported_lp_locked_pct": 100,
           "lp_mint": "11111111111111111111111111111111"
         }
       ],
-      "reported_total_market_liquidity_usd": 3192.4503885393915,
-      "reported_total_stable_liquidity_usd": 16.13765090333817,
+      "reported_total_market_liquidity_usd": 3192.5621202330562,
+      "reported_total_stable_liquidity_usd": 16.249382597002867,
       "reported_price_usd": 4.045187142286241e-06,
       "rugcheck_detected_at": "2026-10-10T21:32:52.865472382Z",
       "limitation": "Indexer output; token accounts are not beneficial owners. Cross-check balances against finalized Solana RPC; pool reserve value is not executable sell depth."
