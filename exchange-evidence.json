@@ -1,12 +1,12 @@
 {
-  "timestamp_utc": "2026-11-20T20:38:51.466636+00:00",
+  "timestamp_utc": "2026-11-21T07:35:42.611643+00:00",
   "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
   "creator_wallet": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
   "sources": {
     "token_supply": {
       "context": {
         "apiVersion": "4.4.0",
-        "slot": 471874191
+        "slot": 472057255
       },
       "value": {
         "amount": "1000000000000000",
@@ -58,7 +58,7 @@
     },
     "creator_wallet_token_accounts": {
       "context": {
-        "slot": 471874222,
+        "slot": 472057285,
         "apiVersion": "4.3.0-beta.2"
       },
       "value": [
@@ -249,13 +249,13 @@
           "token_reserve_raw": 785207859590120,
           "quote_reserve_raw": 222291323,
           "quote_reserve_mint": "So11111111111111111111111111111111111111112",
-          "quote_reserve_usd": 15.047490124392567,
+          "quote_reserve_usd": 15.082854198307752,
           "reported_lp_locked_pct": 100,
           "lp_mint": "11111111111111111111111111111111"
         }
       ],
-      "reported_total_market_liquidity_usd": 3191.360227760446,
-      "reported_total_stable_liquidity_usd": 15.047490124392567,
+      "reported_total_market_liquidity_usd": 3191.3955918343613,
+      "reported_total_stable_liquidity_usd": 15.082854198307752,
       "reported_price_usd": 4.045187142286241e-06,
       "rugcheck_detected_at": "2026-10-10T21:32:52.865472382Z",
       "limitation": "Indexer output; token accounts are not beneficial owners. Cross-check balances against finalized Solana RPC; pool reserve value is not executable sell depth."
