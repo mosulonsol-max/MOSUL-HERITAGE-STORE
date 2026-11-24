@@ -1,12 +1,12 @@
 {
-  "timestamp_utc": "2026-11-24T00:12:19.047631+00:00",
+  "timestamp_utc": "2026-11-24T10:16:29.595448+00:00",
   "mint": "6Asbjq8icEZi4XdKKsoT7vA23NaLECyGfWQYuF57pump",
   "creator_wallet": "EpFkymuvH8XGq1CWfRtGE1XJUFAjAwUZy5oby5v8Qhxu",
   "sources": {
     "token_supply": {
       "context": {
         "apiVersion": "4.4.0",
-        "slot": 473139038
+        "slot": 473307637
       },
       "value": {
         "amount": "1000000000000000",
@@ -58,7 +58,7 @@
     },
     "creator_wallet_token_accounts": {
       "context": {
-        "slot": 473139071,
+        "slot": 473307669,
         "apiVersion": "4.3.0-beta.2"
       },
       "value": [
@@ -115,8 +115,7 @@
         },
         "liquidity": null,
         "volume": {
-          "h24": 15.98,
-          "h6": 15.98
+          "h24": 15.98
         },
         "txns": {
           "m5": {
@@ -129,7 +128,7 @@
           },
           "h6": {
             "buys": 0,
-            "sells": 1
+            "sells": 0
           },
           "h24": {
             "buys": 0,
@@ -147,13 +146,13 @@
         "pool_id": "solana_FZQEzikp7rkjaggBkeM4uW8RPT2seRBWKWboQLGW1VZq",
         "address": "FZQEzikp7rkjaggBkeM4uW8RPT2seRBWKWboQLGW1VZq",
         "name": "MOSUL / SOL",
-        "reserve_usd": "1609.974",
+        "reserve_usd": "1580.3945",
         "volume_usd": {
           "m5": "0.0",
           "m15": "0.0",
           "m30": "0.0",
           "h1": "0.0",
-          "h6": "16.0091800716",
+          "h6": "0.0",
           "h24": "16.0091800716"
         },
         "base_token_price_usd": "0.000002028496611",
@@ -226,7 +225,7 @@
           "pump-fun"
         ],
         "holders": {
-          "count": null,
+          "count": 2,
           "distribution_percentage": {
             "top_10": "100.0",
             "11_20": null,
@@ -297,13 +296,13 @@
           "token_reserve_raw": 793100000000000,
           "quote_reserve_raw": 22,
           "quote_reserve_mint": "So11111111111111111111111111111111111111112",
-          "quote_reserve_usd": 1.5792104436657816e-06,
+          "quote_reserve_usd": 1.554779557767704e-06,
           "reported_lp_locked_pct": 100,
           "lp_mint": "11111111111111111111111111111111"
         }
       ],
-      "reported_total_market_liquidity_usd": 3208.237924126428,
-      "reported_total_stable_liquidity_usd": 1.5792104436657816e-06,
+      "reported_total_market_liquidity_usd": 3208.237924101997,
+      "reported_total_stable_liquidity_usd": 1.554779557767704e-06,
       "reported_price_usd": 4.045187142286241e-06,
       "rugcheck_detected_at": "2026-10-10T21:32:52.865472382Z",
       "limitation": "Indexer output; token accounts are not beneficial owners. Cross-check balances against finalized Solana RPC; pool reserve value is not executable sell depth."
